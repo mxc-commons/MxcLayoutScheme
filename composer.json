@@ -1,0 +1,30 @@
+{
+    "name": "mxc-commons/mxc-layoutscheme",
+    "description": "Zend Framework 2 Module that allows to define layout schemes and apply custom layouts to routes, modules, controllers and actions.",
+    "type": "library",
+    "keywords": [
+        "module",
+        "zf2"
+    ],
+    "homepage": "http://www.github.com/mxc-commons/MxcLayoutScheme/",
+    "authors": [
+        {
+            "name": "Frank Hein",
+            "email": "frank.hein@maxence.de",
+            "homepage": "http://www.maxence.de/"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "zendframework/zend-mvc": ">=2.1",
+        "zendframework/zend-servicemanager": ">=2.1",
+        "zendframework/zend-eventmanager": ">=2.1",
+        "zendframework/zend-modulemanager": ">=2.1",
+        "zendframework/zend-stdlib": "~2.1"
+    },
+    "autoload": {
+        "psr-0": {
+            "MxcLayoutSwitch\\": "src/"
+        }
+    }
+}
