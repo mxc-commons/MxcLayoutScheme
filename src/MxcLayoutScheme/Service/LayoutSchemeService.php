@@ -3,6 +3,7 @@
 namespace MxcLayoutScheme\Service;
 
 use Zend\Mvc\MvcEvent;
+use Zend\View\Model\ViewModel;
 use Zend\EventManager\ListenerAggregateInterface;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ProvidesEvents;
@@ -13,7 +14,8 @@ use MxcLayoutScheme\Service\LayoutSchemeOptions;
 
 class LayoutSchemeService implements ListenerAggregateInterface 
 {
-	const HOOK_SELECT_SCHEME      = 'select-scheme';
+	const HOOK_PRE_SCHEME_SELECT      = 'pre-scheme-select';
+	const HOOK_POST_LAYOUT_SELECT	  = 'post-layout-select';
 	
 	use ProvidesEvents;
 	
@@ -22,6 +24,7 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	protected $options = null;
 	protected $schemeOptions = array();
 	protected $params  = null;
+	protected $childViewModels = array();
 	
 	public function __construct(ServiceManager $sm) {
 		$this->setServiceManager($sm);
@@ -38,32 +41,37 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		$controller = substr($controllerclass,strrpos($controllerclass,'\\')+1);
 		$routeMatch = $e->getRouteMatch();
 		$this->params
-			->set('controllerInstance',$ctrl)
-			->set('module',substr($controllerclass,0,strpos($controllerclass,'\\')))
-			->set('controller',substr($controller,0,strrpos($controller,'Controller')))
-			->set('action',$routeMatch->getParam('action'))
-			->set('route',$routeMatch->getMatchedRouteName());
+			->set('controller',$ctrl)
+			->set('moduleName',substr($controllerclass,0,strpos($controllerclass,'\\')))
+			->set('controllerName',substr($controller,0,strrpos($controller,'Controller')))
+			->set('actionName',$routeMatch->getParam('action'))
+			->set('routeName',$routeMatch->getMatchedRouteName());
+		
+		// event handler may modify the active scheme
+		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_PRE_SCHEME_SELECT, $this);
 		$this->selectLayout();
+		// event handler may add variables to the layout
+		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_POST_LAYOUT_SELECT, $this);
 	}
 	
 	/**
 	 * select template according to active scheme
 	 */
 	public function selectLayout() {
-
+		
 		$schemeOptions = $this->getActiveSchemeOptions();
 		
 		if ($schemeOptions->getEnableRouteLayouts()) {
 			$templates = $schemeOptions->getRouteLayouts();
-			$route = $this->params->get('route');
+			$route = $this->getParam('routeName');
 			if ($this->applyLayout($templates, $route)) return;
 		}
 		
 		if ($schemeOptions->getEnableMcaLayouts()) {
 			$templates = $schemeOptions->getMcaLayouts();
-			$module = $this->params->get('module');
-			$controller = $this->params->get('controller');
-			$action = $this->params->get('action');
+			$module = $this->getParam('moduleName');
+			$controller = $this->getParam('controllerName');
+			$action = $this->getParam('actionName');
 			
 			if ($this->applyLayout($templates, $module.'\\'.$controller.'\\'.$action)) return;
 			if ($this->applyLayout($templates, $module.'\\'.$controller)) return;
@@ -71,6 +79,7 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		}
 		
 		if ($this->applyLayout($schemeOptions->getDefault(),'global')) return;
+
 	}
 	
 	/**
@@ -81,9 +90,79 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 */
 	public function applyLayout($templates,$key) {
 	
-		if (!isset($templates[$key])) return false;
-		$this->params->get('controllerInstance')->layout($templates[$key]);
+		if (!isset($templates[$key]['layout'])) return false;
+		$this->params->get('controller')->layout($templates[$key]['layout']);
+		$this->applyChildViewModels($templates, $key);
 		return true;
+	}
+	
+	/**
+	 * @param $templates
+	 * @param $key
+	 *
+	 * @return bool
+	 */
+	public function applyChildViewModels($templates, $key) {
+		$controller = $this->getParam('controller', null);
+
+		//--- return if we do not have a controller instance
+		if (!$controller) return;
+		$templateName = $templates[$key]['layout'];
+		$childViewModelList = $this->getActiveSchemeOptions()->getDefaultChildViewModels();
+		$childViewModels = isset($childViewModelList[$templateName]) ? $childViewModelList[$templateName] : null;
+		
+		if (!$childViewModels) return;
+		
+		$overrideChildViewModels = isset($templates[$key]['child_view_models']) ? $templates[$key]['child_view_models'] : null;
+		
+		if ($overrideChildViewModels) {
+			$childViewModels = array_merge($childViewModels,$overrideChildViewModels);
+		}
+		
+		$layout = $controller->layout();
+			
+		foreach ($childViewModels as $capture => $template) {
+			switch ($template) {
+				case null:
+				case '<default>': 
+					$template = strtolower($this->params->get('moduleName').'\\'.
+										   $this->params->get('controllerName').'\\'.
+										   $this->params->get('actionName').'-'.
+										   $capture);
+					break;
+				case '<none>':
+					$template = null;
+				default:
+					break;
+			}
+
+			if (!$template) break;
+
+			$view = new ViewModel();
+			$view->setTemplate($template);
+			$layout->addChild($view,$capture);
+
+			// keep reference for controller plugin use
+			$this->setChildViewModel($capture, $view);
+		}
+	}
+	
+	/**
+	 * @param string $capture
+	 * @param ViewModel $view
+	 */
+	protected function setChildViewModel($capture, $view) {
+		$this->childViewModels[$capture] = $view;
+	}
+	
+	/**
+	 * @param $capture
+	 * @param $default
+	 *
+	 * @return mixed | ViewModel
+	 */
+	protected function getChildViewModel($capture, $default = null) {
+		return isset($this->childViewModels[$capture]) ? $this->childViewModels[$capture] : $default;  
 	}
 	
 	/**
@@ -95,7 +174,7 @@ class LayoutSchemeService implements ListenerAggregateInterface
 
 	public function attach(EventManagerInterface $events)
 	{
-		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-100);
+		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-1000);
 	}
 	
 	/**
@@ -148,7 +227,7 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 * @param  multi_type $default
 	 * @return param($name,$default)
 	 */
-	public function getParam($name,$default) {
+	public function getParam($name, $default = null) {
 		return $this->params->get($name, $default);
 	}
 
@@ -176,8 +255,40 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 * @return MxcLayoutSchemeOptions
 	 */
 	protected function getActiveSchemeOptions() {
-		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_SELECT_SCHEME, $this->getOptions());
 		return $this->getSchemeOptions($this->getOptions()->getActiveScheme());
 	}
 	
+	/**
+	 * register one or more additional schemes
+	 * existing scheme with same names gets replaced
+	 * 
+	 * @oaram array()
+	 * 
+	 */
+	protected function registerSchemes($schemes) {
+		$this->getOptions()->registerSchemes($schemes);
+	}
+	
+	/**
+	 * set active scheme in associated options object
+	 * 
+	 * @param string
+	 */
+	public function setActiveScheme($activeScheme) {
+		$this->getOptions()->setActiveScheme($activeScheme);
+	}
+
+	/**
+	 * @return the $childViewModels
+	 */
+	public function getChildViewModels() {
+		return $this->childViewModels;
+	}
+
+	/**
+	 * @param multitype: $childViewModels
+	 */
+	public function setChildViewModels($childViewModels) {
+		$this->childViewModels = $childViewModels;
+	}
 }

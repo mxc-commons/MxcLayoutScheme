@@ -24,7 +24,9 @@ $mxclayoutscheme = array(
 //			// the default/global layout gets applied if no rule matches
 //			// 'global' currently is the only supported key in the default section
 //			'default' => array(
-//				'global' => 'layout/layout'
+//				'global' => array(
+//					'layout' => 'layout/layout'
+//				),
 //			),
 //		),
 //		
@@ -38,14 +40,22 @@ $mxclayoutscheme = array(
 //			//    example: class IndexController -> controller name: Index
 //			//  action: 	name of action
 //			'mca_layouts => array(
-//				'ModuleName1' => 'module1/layout',
-//				'ModuleName2' => 'module2/layout',
-//				'ModuleName3' => 'module3/layout',
+//				'ModuleName1' => array(
+//					'layout' => 'module1/layout',
+//				),
+//				'ModuleName2' => array(
+//					'layout' => 'module2/layout',
+//				),
+//				'ModuleName3' => array(
+//					'layout' => 'module3/layout',
+//				),
 //			),
 //			// default to standard zf2 layout for modules not registered
 //			// Note: If you do not specify a default global layout the application standard gets used 
 //			'default' => array(
-//				'global' => 'layout/layout',
+//				'global' => array(
+//					'layout' => 'layout/layout',
+//				),
 //			),
 //
 //		// Example scheme to demonstrate 
@@ -54,15 +64,27 @@ $mxclayoutscheme = array(
 //		// * how to apply a different layout to the addAction of Controller3Controller
 //		'controllers' => array(
 //			'mca_layouts => array(
-//				'Module1\Index\index' => 'm1Index/indexlayout',
-//				'Module1\Controller1' => 'm1c1/layout',
-//				'Module1\Controller2' => 'm1c2/layout',
-//				'Module1\Controller3' => 'm1c3/layout',
-//				'Module1\Controller3\add' => 'm1c3/addlayout'
+//				'Module1\Index\index' => array(
+//					'layout' => 'm1Index/indexlayout',
+//				),
+//				'Module1\Controller1' => array(
+//					'layout' => 'm1c1/layout',
+//				),
+//				'Module1\Controller2' => array(
+//					'layout' => 'm1c2/layout',
+//				),
+//				'Module1\Controller3' => array(
+//					'layout' => 'm1c3/layout',
+//				),
+//				'Module1\Controller3\add' => array(
+//					'layout' => 'm1c3/addlayout'
+//				),
 //			),
 //			// default to standard zf2 layout for mca not registered 
 //			'default' => array(
-//				'global' => 'layout/layout',
+//				'global' => array(
+//					'layout' => 'layout/layout',
+//				),
 //			),
 //		),
 //
@@ -79,22 +101,62 @@ $mxclayoutscheme = array(
 //		'routes' => array(
 //
 //			'route_layouts' => array(
-//				'home' 			=> 'home/layout',
-//				'home/mobile	=> 'mobile/home/layout',
+//				'home' 			=> array(
+//					'layout' => 'home/layout',
+//				),
+//				'home/mobile	=> array(
+//					'layout' => 'mobile/home/layout',
+//				),
 //			),
 //			'mca_layouts => array(
-//				'Module1\Index\index' => 'm1Index/indexlayout',
-//				'Module1\Controller1' => 'm1c1/layout',
-//				'Module1\Controller2' => 'm1c2/layout',
-//				'Module1\Controller3' => 'm1c3/layout',
-//				'Module1\Controller3\add' => 'm1c3/addlayout'
+//				'Module1\Index\index' => array(
+//					'layout' => 'm1Index/indexlayout',
+//				),
+//				'Module1\Controller1' => array(
+//					'layout' => 'm1c1/layout',
+//				),
+//				'Module1\Controller2' => array(
+//					'layout' => 'm1c2/layout',
+//				),
+//				'Module1\Controller3' => array(
+//					'layout' => 'm1c3/layout',
+//				),
+//				'Module1\Controller3\add' => array(
+//					'layout' => 'm1c3/addlayout'
+//				),
 //			),
 //			// default to standard zf2 layout for mca not registered 
 //			'default' => array(
-//				'global' => 'layout/layout',
+//				'global' => array(
+//					'layout' => 'layout/layout',
+//				),
 //			),
 //		),
+//		// Example scheme to demonstrate 
+//		// * how to apply default child view models with capture and template
+//		// * how to override the default child views in a particular rule
+//		'childviews' => array(
+//          'mca_layouts' => array(
+//              'ZfcUser\User\login' => array(
+//                  'layout' => 'layout\master',
+//                  'child_view_models' => array(
+//                      'panelLeft' => '<none>',
+//                  ),
+//              ),
+//          ),
+//          'default' => array(
+//              'global' => array(
+//                  'layout' => 'layout\master'
+//              ),
+//          ),
+//          'default_child_view_models' => array(
+//              'layout\master' => array(
+//                  'panelLeft' => 'layout\leftNavigation',
+//              ),
+//          ),
+//      ),
 //	)
+
 );
 
 return array(

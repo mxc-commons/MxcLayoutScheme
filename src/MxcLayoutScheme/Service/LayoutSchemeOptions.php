@@ -14,24 +14,28 @@ class LayoutSchemeOptions extends AbstractOptions {
 	/**
 	 * @var bool
 	 */
-
 	protected $enableRouteLayouts = true;
+
 	/**
 	 * @var array()
 	 */
-
 	protected $mcaLayouts = array();
+
 	/**
 	 * @var array()
 	 */
-
 	protected $routeLayouts = array();
 
 	/**
 	 * @var array
 	 */
 	protected $default = array();
-
+	
+	/**
+	 * @var array
+	 */
+	protected $defaultChildViewModels = array();
+	
 	/**
 	 * @return the $enableMcaLayouts
 	 */
@@ -101,5 +105,19 @@ class LayoutSchemeOptions extends AbstractOptions {
 	public function setDefault($default) {
 		$this->default = $default;
 	}
+	/**
+	 * @return the $defaultChildViewModels
+	 */
+	public function getDefaultChildViewModels() {
+		return $this->defaultChildViewModels;
+	}
+
+	/**
+	 * @param multitype: $defaultChildViewModels
+	 */
+	public function setDefaultChildViewModels($defaultChildViewModels) {
+		$this->defaultChildViewModels = $defaultChildViewModels;
+	}
+
 
 }

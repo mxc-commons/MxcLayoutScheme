@@ -36,6 +36,15 @@ class Module implements AutoloaderProviderInterface
     	$sm = $app->getServiceManager();
     	$em = $app->getEventManager();
     	$em->attach($sm->get('mxclayoutscheme_service'));
+    	$sm->get('ControllerPluginManager')->get('layoutScheme')->setServiceManager($sm);
+    }
+    
+    public function getControllerPluginConfig() {
+    	return array(
+    		'invokables' => array(
+    			'layoutScheme' => 'MxcLayoutScheme\Controller\Plugin\LayoutSchemePlugin',
+    		)
+    	);
     }
     
     public function getServiceConfig()

@@ -52,4 +52,14 @@ class LayoutSchemeServiceOptions extends AbstractOptions
     {
         return $this->activeScheme;
     }
+
+    /**
+	 * register additional layout schemes
+	 * existing schemes with same name get replaced
+	 * 
+	 * @param array
+	 */
+	protected function registerSchemes($schemes) {
+		$this->schemes = array_merge($this->schemes, $schemes);
+	}
 }
