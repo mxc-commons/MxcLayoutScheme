@@ -217,14 +217,21 @@ Additionally, there are two reserved values which you can use instead: `'<defaul
 
 ####templateName `'<default>'`:
 
-If you specify `<default>` as the templateName, MxcLayoutScheme computes a template name which can be resolved by the `TemplatePathStack` resolver. Based on the actual `<module>`, `<controller>` and `<action>` the rule `<capture> => <default>` the template name `<module>\<controller>\<action>-<capture>` is the default is generated in lowercase.
+If you specify `<default>` as the templateName, MxcLayoutScheme computes a template name which can be resolved by the `TemplatePathStack` resolver. Based on the actual `<module>`, `<controller>` and `<action>` the rule `<capture> => <default>` the `Zend\Filter\Word\CamelCaseToDash` gets applied to the string `<module>\<controller>\<action>-<capture>` and the result gets assigned lowercase to the templateName. 
 
-######Example:
+######Example 1:
 
 May the module be `Reporting`, the controller class `WbsController`, the action be `listAction`.
 May the the child ViewModel definition be `'header' => '<default>'`.
 
 The templateName computes to `'reporting\wbs\list-header'`. If you provide a template named `list-header.phtml` within the folder `view\reporting\wbs\` of your module directory it gets found by the `TemplatePathStack` resolver when rendering the `header` capture of the layout (by `<?php echo $this->header ?>` in the layout template)
+
+######Example 2:
+
+May the module be `Reporting`, the controller class `WbsController`, the action be `prjListAction`. 
+May the the child ViewModel definition be `'panelLeft' => '<default>'`.
+
+The templateName computes to `'reporting\wbs\prj-list-panel-left'`.
 
 ####templateName `'<none>'` :
 

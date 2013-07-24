@@ -9,6 +9,7 @@ use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ProvidesEvents;
 use Zend\Stdlib\Parameters;
 use Zend\ServiceManager\ServiceManager;
+use Zend\Filter\Word\CamelCaseToDash;
 use MxcLayoutScheme\Service\MxcLayoutSchemeServiceOptions;
 use MxcLayoutScheme\Service\LayoutSchemeOptions;
 
@@ -120,15 +121,17 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		}
 		
 		$layout = $controller->layout();
-			
+		
+		$filter = new CamelCaseToDash();
+		
 		foreach ($childViewModels as $capture => $template) {
 			switch ($template) {
 				case null:
 				case '<default>': 
-					$template = strtolower($this->params->get('moduleName').'\\'.
+					$template = strtolower($filter->filter($this->params->get('moduleName').'\\'.
 										   $this->params->get('controllerName').'\\'.
 										   $this->params->get('actionName').'-'.
-										   $capture);
+										   $capture));
 					break;
 				case '<none>':
 					$template = null;
@@ -138,6 +141,8 @@ class LayoutSchemeService implements ListenerAggregateInterface
 
 			if (!$template) break;
 
+			echo $template;
+			
 			$view = new ViewModel();
 			$view->setTemplate($template);
 			$layout->addChild($view,$capture);
