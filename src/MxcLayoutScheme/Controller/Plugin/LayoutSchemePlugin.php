@@ -31,8 +31,8 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	 * 
 	 * @param $variables
 	 */
-	public function setVariables($variables) {
-	    $this->getLayoutSchemeService()->setVariables($variables);
+	public function setVariables($variables, $override = false) {
+	    $this->getLayoutSchemeService()->setVariables($variables, $override);
 	}
 	
 	/**

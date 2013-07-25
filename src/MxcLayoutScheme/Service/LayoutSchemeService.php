@@ -174,16 +174,16 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 * apply variables to controller view model and all child view models
 	 * @param array: $variables
 	 */
-	public function setVariables($variables) {
+	public function setVariables($variables, $override = false) {
 		// apply variables to main layout view model
 		$controller = $this->getParam('controller');
 		if($controller) {
-			$controller->layout()->setVariables($variables);
+			$controller->layout()->setVariables($variables, $override);
 		}
 		// apply variables to all child view models
 		$views = $this->getChildViewModels();
 		foreach ($views as $view) {
-			$view->setVariables($variables);
+			$view->setVariables($variables, $override);
 		}
 	}
 	
