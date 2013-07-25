@@ -150,7 +150,7 @@ Example Event Handler to choose the active scheme
     	$app = $e->getApplication();
     	$em = $app->getEventManager();
 		$sem = $em->getSharedManager();
-    	$sem->attach('MxcLayoutScheme\Service\MxcLayoutSchemeService',
+    	$sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
 			MxcLayoutSchemeService::HOOK_PRE_SCHEME_SELECT, 
 			function($e) {
 				// ... compute $schemeName here
@@ -170,7 +170,7 @@ Example Event Handler to do some postprocessing after layout selection has finis
     	$app = $e->getApplication();
     	$em = $app->getEventManager();
 		$sem = $em->getSharedManager();
-    	$sem->attach('MxcLayoutScheme\Service\MxcLayoutSchemeService',
+    	$sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
 			MxcLayoutSchemeService::HOOK_POST_LAYOUT_SELECT, 
 			function($e) {
 				$serviceManager = $e->getApplication()->getServiceManager();				
@@ -196,7 +196,7 @@ Example Event Handler to do some postprocessing after layout selection has finis
 					'berliner' => 'Ich',
 					'ein' => 'bin',
 					'bin' => 'ein',
-					'ich' => 'Berliner! :)';
+					'ich' => 'Berliner! :)',
 				);
 
 				// apply this set of variables to the layout view model and all registered
