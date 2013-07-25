@@ -153,7 +153,17 @@ Example Event Handler to choose the active scheme
     	$sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
 			LayoutSchemeService::HOOK_PRE_SCHEME_SELECT, 
 			function($e) {
-				// ... compute $schemeName here
+				switch ($weather) {
+					case 'sunny':
+						$schemeName = 'sun';
+						break;
+					case 'rainy':
+						$schemeName = 'umbrella';
+						break;
+					default:
+						$schemeName = 'default';
+						break;
+				}
 				$e->getTarget()->setActiveScheme($schemeName);
 			}, 100);
     }
@@ -169,41 +179,24 @@ Example Event Handler to do some postprocessing after layout selection has finis
     {
     	$app = $e->getApplication();
     	$em = $app->getEventManager();
-		$sem = $em->getSharedManager();
-    	$sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
-			LayoutSchemeService::HOOK_POST_LAYOUT_SELECT, 
-			function($e) {
-				$serviceManager = $e->getApplication()->getServiceManager();				
-				
-				// get the layoutScheme controller plugin for convenience
-				$layoutSchemePlugin = $serviceManager
-					->get('ControllerPluginManager')->get('layoutScheme');
-				
-				// get the layoutSchemeService
-				$layoutSchemeService = $serviceManager->get('layoutscheme_service');
-				
-				// inject the applications service manager to the controller plugin
-				$layoutSchemePlugin->setServiceManager($serviceManager);
 
-				// Note: If the $controller member of the plugin is null (because we
-				// instantiate the plugin here beside normal flow of operation), the 
-				// plugin automatically retrieves the controller instance from the
-				// layoutSchemeService
+        $sem = $em->getSharedManager();
+        $sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
+        		LayoutSchemeService::HOOK_POST_LAYOUT_SELECT,
+        		function($e) {
+        			$variables = array(
+        					'berliner' => 'Ich',
+        					'ein' => 'bin',
+        					'bin' => 'ein',
+        					'ich' => 'Berliner! :)'
+        			);
+        
+        			// apply this set of variables to the layout view model and all registered
+        			// registered child view models
+        			$e->getTarget()->setVariables($variables);
+        
+        		}, 100);
 
-				// ready to go
-
-				$variables = array( 
-					'berliner' => 'Ich',
-					'ein' => 'bin',
-					'bin' => 'ein',
-					'ich' => 'Berliner! :)',
-				);
-
-				// apply this set of variables to the layout view model and all registered
-				// registered child view models
-				$layoutSchemePlugin->setVariables($variables); 		
-
-			}, 100);
     }
 
 Special Child Template Names

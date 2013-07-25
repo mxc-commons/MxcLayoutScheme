@@ -2,13 +2,10 @@
 namespace MxcLayoutScheme\Controller\Plugin;
 
 use Zend\Mvc\Controller\Plugin\AbstractPlugin;
-use Zend\ServiceManager\ServiceManagerAwareInterface;
-use Zend\ServiceManager\ServiceManager;
 use RuntimeException;
 
-class LayoutSchemePlugin extends AbstractPlugin implements ServiceManagerAwareInterface {
+class LayoutSchemePlugin extends AbstractPlugin {
 
-	protected $serviceManager = null;
 	protected $layoutSchemeService = null;
 
 	/**
@@ -35,41 +32,22 @@ class LayoutSchemePlugin extends AbstractPlugin implements ServiceManagerAwareIn
 	 * @param $variables
 	 */
 	public function setVariables($variables) {
-		// apply variables to main layout view model
-		// we do not necessarily have a controller
-		if($this->getController()) {
-			$this->getController()->layout()->setVariables($variables);
-		}
-		// apply variables to all child view models
-		$views = $this->getChildViewModels();
-		foreach ($views as $view) {
-			$view->setVariables($variables);
-		}
+	    $this->getLayoutSchemeService()->setVariables($variables);
 	}
 	
 	/**
-	 * @return the $serviceManager
+	 * @param LayoutSchemeService
 	 */
-	public function getServiceManager() {
-		return $this->serviceManager;
+	public function setLayoutSchemeService($layoutSchemeService) {
+        $this->layoutSchemeService = $layoutSchemeService;
 	}
-
-	/**
-	 * @param ServiceManager $serviceManager
-	 */
-	public function setServiceManager(ServiceManager $serviceManager) {
-		$this->serviceManager = $serviceManager;
-	}
+	
 	/**
 	 * @return the $layoutSchemeService
 	 */
 	public function getLayoutSchemeService() {
 		if (!$this->layoutSchemeService) {
-			$sm = $this->getServiceManager();
-			if (!$sm) {
-				throw new RuntimeException(sprintf('No ServiceManager reference available. Should be injected onBootstrap.'));
-			}
-			$this->layoutSchemeService = $sm->get('mxclayoutscheme_service');
+			throw new RuntimeException(sprintf('No LayoutSchemeService reference available. Should be injected onBootstrap.'));
 		}
 		return $this->layoutSchemeService;
 	}
@@ -85,6 +63,9 @@ class LayoutSchemePlugin extends AbstractPlugin implements ServiceManagerAwareIn
 			// seems like we get instantiated besides the normal flow of operation (e.g. in bootstrap)
 			// so let's ask our service for a controller instance
 			$this->setController($this->getLayoutSchemeService()->getParam('controller'));
+		    if (!$this->controller) {
+			    throw new RuntimeException(sprintf('No Controller reference available. Sorry.'));
+		    } 
 		}
 		return $this->controller;
 	}

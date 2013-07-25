@@ -10,7 +10,7 @@ use Zend\EventManager\ProvidesEvents;
 use Zend\Stdlib\Parameters;
 use Zend\ServiceManager\ServiceManager;
 use Zend\Filter\Word\CamelCaseToDash;
-use MxcLayoutScheme\Service\MxcLayoutSchemeServiceOptions;
+use MxcLayoutScheme\Service\LayoutSchemeServiceOptions;
 use MxcLayoutScheme\Service\LayoutSchemeOptions;
 
 class LayoutSchemeService implements ListenerAggregateInterface 
@@ -32,6 +32,26 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		$this->params = new Parameters;
 	}
 
+	public function attach(EventManagerInterface $events)
+	{
+		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-1000);
+	}
+	
+	/**
+	 * Detach aggregate listeners from the specified event manager
+	 *
+	 * @param  EventManagerInterface $events
+	 * @return void
+	 */
+	public function detach(EventManagerInterface $events)
+	{
+		foreach ($this->listeners as $index => $listener) {
+			if ($events->detach($listener)) {
+				unset($this->listeners[$index]);
+			}
+		}
+	}
+	
 	/**
 	 * handle dispatch event
 	 */
@@ -151,6 +171,34 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	}
 	
 	/**
+	 * apply variables to controller view model and all child view models
+	 * @param array: $variables
+	 */
+	public function setVariables($variables) {
+		// apply variables to main layout view model
+		$controller = $this->getParam('controller');
+		if($controller) {
+			$controller->layout()->setVariables($variables);
+		}
+		// apply variables to all child view models
+		$views = $this->getChildViewModels();
+		foreach ($views as $view) {
+			$view->setVariables($variables);
+		}
+	}
+	
+	/**
+	 * register one or more additional schemes
+	 * existing scheme with same names gets replaced
+	 * 
+	 * @oaram array()
+	 * 
+	 */
+	protected function registerSchemes($schemes) {
+		$this->getOptions()->registerSchemes($schemes);
+	}
+	
+	/**
 	 * @param string $capture
 	 * @param ViewModel $view
 	 */
@@ -167,36 +215,9 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	protected function getChildViewModel($capture, $default = null) {
 		return isset($this->childViewModels[$capture]) ? $this->childViewModels[$capture] : $default;  
 	}
-	
-	/**
-	 * Attach the aggregate to the specified event manager
-	 *
-	 * @param  EventManagerInterface $events
-	 * @return void
-	 */
 
-	public function attach(EventManagerInterface $events)
-	{
-		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-1000);
-	}
-	
 	/**
-	 * Detach aggregate listeners from the specified event manager
-	 *
-	 * @param  EventManagerInterface $events
-	 * @return void
-	 */
-	public function detach(EventManagerInterface $events)
-	{
-		foreach ($this->listeners as $index => $listener) {
-			if ($events->detach($listener)) {
-				unset($this->listeners[$index]);
-			}
-		}
-	}
-	
-	/**
-	 * @return MxcLayoutSchemeServiceOptions $options
+	 * @return LayoutSchemeServiceOptions $options
 	 */
 	public function getOptions() {
 		if (!$this->options) {
@@ -224,7 +245,21 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	public function setServiceManager(ServiceManager $serviceManager) {
 		$this->serviceManager = $serviceManager;
 	}
-
+	
+	/**
+	 * @return the $childViewModels
+	 */
+	public function getChildViewModels() {
+		return $this->childViewModels;
+	}
+	
+	/**
+	 * @param multitype: $childViewModels
+	 */
+	public function setChildViewModels($childViewModels) {
+		$this->childViewModels = $childViewModels;
+	}
+		
 	/**
 	 * @param  string $name
 	 * @param  multi_type $default
@@ -234,6 +269,24 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		return $this->params->get($name, $default);
 	}
 
+	/**
+	 * set active scheme in associated options object
+	 * 
+	 * @param string
+	 */
+	public function setActiveScheme($activeScheme) {
+		$this->getOptions()->setActiveScheme($activeScheme);
+	}
+
+	/**
+	 * setup LayoutSchemeOptions according to currently active scheme
+	 * 
+	 * @return LayoutSchemeOptions
+	 */
+	protected function getActiveSchemeOptions() {
+		return $this->getSchemeOptions($this->getOptions()->getActiveScheme());
+	}
+	
 	/**
 	 * setup LayoutSchemeOptions according to $schemeName
 	 * 
@@ -250,48 +303,5 @@ class LayoutSchemeService implements ListenerAggregateInterface
 			}	
 		}
 		return $this->schemeOptions[$schemeName];
-	}
-	
-	/**
-	 * setup LayoutSchemeOptions according to currently active scheme
-	 * 
-	 * @return MxcLayoutSchemeOptions
-	 */
-	protected function getActiveSchemeOptions() {
-		return $this->getSchemeOptions($this->getOptions()->getActiveScheme());
-	}
-	
-	/**
-	 * register one or more additional schemes
-	 * existing scheme with same names gets replaced
-	 * 
-	 * @oaram array()
-	 * 
-	 */
-	protected function registerSchemes($schemes) {
-		$this->getOptions()->registerSchemes($schemes);
-	}
-	
-	/**
-	 * set active scheme in associated options object
-	 * 
-	 * @param string
-	 */
-	public function setActiveScheme($activeScheme) {
-		$this->getOptions()->setActiveScheme($activeScheme);
-	}
-
-	/**
-	 * @return the $childViewModels
-	 */
-	public function getChildViewModels() {
-		return $this->childViewModels;
-	}
-
-	/**
-	 * @param multitype: $childViewModels
-	 */
-	public function setChildViewModels($childViewModels) {
-		$this->childViewModels = $childViewModels;
 	}
 }
