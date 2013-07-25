@@ -171,7 +171,7 @@ class LayoutSchemeService implements ListenerAggregateInterface
 					break;
 			}
 
-			if (!$template) break;
+			if (!$template) continue;
 			
 			$view = new ViewModel();
 			$view->setTemplate($template);
