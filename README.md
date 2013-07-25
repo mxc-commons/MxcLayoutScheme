@@ -1,6 +1,6 @@
 MxcLayoutScheme
 ===============
-Version 1.0.0 created by Frank Hein and the mxc-commons team.
+Version 0.2.1 created by Frank Hein and the mxc-commons team.
 
 MxcLayoutScheme is part of the [maxence openBeee initiative](http://www.maxence.de/mxcweb/index.php/themen/open-business/)
 by [maxence business consulting gmbh, Germany](http://www.maxence.de). 
