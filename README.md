@@ -52,9 +52,11 @@ view template as far as possible. We want to achieve that within the controller 
 
 **6. Allow configuration of a global default layout for each layout scheme**
 
-**7. [TODO] Default (child) ViewModel variables (fixed and custom computed)**
+**7. Provide hooks for pre- and postprocessing**
 
-In the current version you can either assign the layout variables within the controller action via `layoutScheme` controller plugin. Alternatively you may supply an event handler for postprocessing. We provide an example here.
+**8. Provide a controller plugin to control scheme selection and setup of layout variables**
+
+In the current version you can either assign the layout variables within the controller action via `layoutScheme` controller plugin. Alternatively you may supply an event handler for pre- and postprocessing. We provide an example here.
 
 Installation
 ------------
@@ -126,7 +128,7 @@ How MxcLayoutScheme works
 1. On Bootstrap MxcLayoutScheme hooks into the dispatch event of the application's EventManager with low priority (-1000).
 2. On Bootstrap MxcLayoutScheme instantiates the controller plugin `'layoutScheme'` to inject a reference to the application's ServiceManager instance.
 2. On dispatch MxcLayoutScheme evaluates the current route matched, the module name, the controller name and the action name.
-3. Then MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_PRE_SCHEME_SELECT` event. If you registered an event handler for that event in the bootstrap somewhere you can set the active scheme with `$e->getTarget()->setActiveScheme($schemeName)` with a `$schemeName`of your choice.
+3. Then MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_PRE_SELECT_SCHEME` event. If you registered an event handler for that event in the bootstrap somewhere you can set the active scheme with `$e->getTarget()->setActiveScheme($schemeName)` with a `$schemeName`of your choice. Alternatively, you can set the active scheme within the controller action using the controller plugin: `$this->layoutScheme()->setActiveScheme($schemeName)`.
 4. Then, MxcLayoutScheme loads the currently active scheme.  
 5. MxcLayoutScheme checks the `route_layouts` for a key matching the matched route name. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
 6. MxcLayoutScheme then checks the `mca_layouts` for a key matching Module\Conroller\Action. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
@@ -151,7 +153,7 @@ Example Event Handler to choose the active scheme
     	$em = $app->getEventManager();
 		$sem = $em->getSharedManager();
     	$sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
-			LayoutSchemeService::HOOK_PRE_SCHEME_SELECT, 
+			LayoutSchemeService::HOOK_PRE_SELECT_SCHEME, 
 			function($e) {
 				switch ($weather) {
 					case 'sunny':
@@ -182,7 +184,7 @@ Example Event Handler to do some postprocessing after layout selection has finis
 
         $sem = $em->getSharedManager();
         $sem->attach('MxcLayoutScheme\Service\LayoutSchemeService',
-        		LayoutSchemeService::HOOK_POST_LAYOUT_SELECT,
+        		LayoutSchemeService::HOOK_POST_SELECT_LAYOUT,
         		function($e) {
         			$variables = array(
         					'berliner' => 'Ich',
@@ -297,9 +299,24 @@ From within a controller action you can access the controller plugin with `$this
 
 `layoutScheme` provides the following interfaces:
 
+
 **getChildViewModel($capture):** returns the child view model registered for the $capture capture. Null if capture is not registered.
+
 **getChildViewModels():** returns the array of child view models like `array ( 'capture' => ViewModel )`  
-**setVariables($param):** see ViewModels `setVariables` for $param specification. The `layoutScheme setVariables` function applies the same variables provided through $params to the controller's layout and to all registered child ViewModels.  
+
+**setVariables($variables, $override = false):** see ViewModels `setVariables` for parameter specification. The `layoutScheme setVariables` function applies the same variables provided through `$variables` to the controller's layout and to all registered child ViewModels.  
+
+**getActiveScheme():** get the currently active layout scheme. 
+
+**setActiveScheme($schemeName, $skipPreSelectSchemeEvent = false):** set the layout scheme to use. Set `skipPreSelectSchemeEvent` to `true` then the `LayoutSchemeService::HOOK_PRE_SELECT_EVENT` will not get triggered by `LayoutSchemeService`.
+
+**skipPreSelectSchemeEvent():** disable triggering of `LayoutSchemeService::HOOK_PRE_SELECT_SCHEME` this time. This event would get triggered after the view action before rendering. You may want to disable the event to prevent the global event handler to override the active scheme you set via `$this->layoutScheme()->setActiveScheme()`. 
+######Note:
+The event is not skipped by default. Within the global event handler you can check if the active scheme was set by the controller plugin using `LayoutSchemeService->hasPluginSetActiveScheme()` to prevent overriding.
+
+**skipPostSelectLayoutEvent():** disable triggering of `LayoutSchemeService::HOOK_POST_SELECT_LAYOUT` this time.
+
+**hasPluginSetActiveScheme()**: returns `true` if the active scheme was set previously through by the user through `layoutScheme()->setActiveScheme($schemeName)`.
 
 #####Note
 
@@ -309,6 +326,17 @@ Example:
 
 	$this->layout()->setVariables($varMain); // assign variables to the layout's ViewModel
 	$this->layoutScheme()->getChildViewModel('panelLeft')->setVariables($varPanelLeft); // assign variables to leftPanel child
+
+Important:
+
+`LayoutSchemeService` registers to the `MvcEvent::EVENT_DISPATCH` with priority of -1000. So layout selection
+happens *after* your controller action has returned *before* the page gets rendered. This means in particular that at the time the controller action is executed the `LayoutSchemeService` does not know anything about the layout selected and it's child view models. 
+
+If you call for example `layoutScheme()->getChildViewModel("footer")` this would return nothing because the footer child ViewModel has not been computed yet.
+
+`LayoutSchemeService` is designed for early execution of the onDispatch event handler if called via the controller plugin. If early event handling is done the service prevents event processing to happen again when triggered globally afterwards. Even in early processing the service triggers the `HOOK_PRE_SELECT_SCHEME` and `HOOK_POST_SELECT_LAYOUT` events.
+
+If you do not want one or both events to get triggered make sure to call `layoutScheme()->skipPostSelectLayoutEvent()` and/or `layoutScheme()->skipPreSelectSchemeEvent()` *before* you call `getChildViewModel()`, `getChildViewModels()` or `setVariables()`. Otherwise the event(s) will get fired.   
 
 Notes
 -----

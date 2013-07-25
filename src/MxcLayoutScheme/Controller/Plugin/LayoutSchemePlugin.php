@@ -9,12 +9,28 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	protected $layoutSchemeService = null;
 
 	/**
+	 * Set the active scheme
+	 *
+	 * @param string $activeScheme
+	 */
+	public function setActiveScheme($activeScheme, $skipPreSchemeSelectEvent = false) {
+		$this->getLayoutSchemeService()->pluginSetActiveScheme($activeScheme, $skipPreSchemeSelectEvent);
+	}
+	
+	/**
+	 * Get the active scheme
+	 */
+	public function getActiveScheme() {
+		return $this->getLayoutSchemeService()->getActiveScheme();
+	}
+	
+	/**
 	 * Retrieve array of child view models
 	 * 
 	 * @param $capture
 	 */
 	public function getChildViewModels() {
-		return $this->getLayoutSchemeService()->getChildViewModels();
+		return $this->getLayoutSchemeService()->pluginGetChildViewModels($this->getController());
 	}
 	
 	/**
@@ -23,7 +39,7 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	 * @param $capture
 	 */
 	public function getChildViewModel($capture) {
-		return $this->getLayoutSchemeService()->getChildViewModel($capture);
+		return $this->getLayoutSchemeService()->pluginGetChildViewModel($this->getController(), $capture);
 	}
 	
 	/**
@@ -32,7 +48,25 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	 * @param $variables
 	 */
 	public function setVariables($variables, $override = false) {
-	    $this->getLayoutSchemeService()->setVariables($variables, $override);
+	    $this->getLayoutSchemeService()->pluginSetVariables($this->getController(), $variables, $override);
+	}
+	
+	/**
+	 * Prevent LayoutSchemeService::HOOK_PRE_SELECT_SCHEME to get triggered (for this run only) 
+	 * 
+	 * @param $variables
+	 */
+	public function skipPreSelectSchemeEvent() {
+	    $this->getLayoutSchemeService()->setSkipPreSelectSchemeEvent(true);
+	}
+
+	/**
+	 * Prevent LayoutSchemeService::HOOK_POST_SELECT_LAYOUT to get triggered (for this run only) 
+	 * 
+	 * @param $variables
+	 */
+	public function skipPostSelectLayoutEvent() {
+		$this->getLayoutSchemeService()->setSkipPostSelectLayoutEvent(true);
 	}
 	
 	/**
@@ -59,15 +93,9 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	 */
 	public function getController()
 	{
-		if (!$this->controller) {
-			// seems like we get instantiated besides the normal flow of operation (e.g. in bootstrap)
-			// so let's ask our service for a controller instance
-			$this->setController($this->getLayoutSchemeService()->getParam('controller'));
-		    if (!$this->controller) {
-			    throw new RuntimeException(sprintf('No Controller reference available. Sorry.'));
-		    } 
-		}
+	    if (!$this->controller) {
+		    throw new RuntimeException(sprintf('No Controller reference available. Sorry.'));
+	    } 
 		return $this->controller;
 	}
-	
 }

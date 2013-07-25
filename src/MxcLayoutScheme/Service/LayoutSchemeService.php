@@ -15,8 +15,8 @@ use MxcLayoutScheme\Service\LayoutSchemeOptions;
 
 class LayoutSchemeService implements ListenerAggregateInterface 
 {
-	const HOOK_PRE_SCHEME_SELECT      = 'pre-scheme-select';
-	const HOOK_POST_LAYOUT_SELECT	  = 'post-layout-select';
+	const HOOK_PRE_SELECT_SCHEME      = 'pre-select-scheme';
+	const HOOK_POST_SELECT_LAYOUT	  = 'post-select-layout';
 	
 	use ProvidesEvents;
 	
@@ -26,6 +26,10 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	protected $schemeOptions = array();
 	protected $params  = null;
 	protected $childViewModels = array();
+	protected $completed = false;
+	protected $hasPluginSetActiveScheme = false;
+	protected $skipPreSelectSchemeEvent = false;
+	protected $skipPostSelectLayoutEvent = false;
 	
 	public function __construct(ServiceManager $sm) {
 		$this->setServiceManager($sm);
@@ -57,6 +61,9 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 */
 	public  function onDispatch(MvcEvent $e)
 	{
+        // prevent multiple execution
+	    if ($this->completed) return;
+	    
 		$ctrl = $e->getTarget();
 		$controllerclass = get_class($ctrl);
 		$controller = substr($controllerclass,strrpos($controllerclass,'\\')+1);
@@ -69,10 +76,15 @@ class LayoutSchemeService implements ListenerAggregateInterface
 			->set('routeName',$routeMatch->getMatchedRouteName());
 		
 		// event handler may modify the active scheme
-		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_PRE_SCHEME_SELECT, $this);
+		if (!$this->getSkipPreSelectSchemeEvent()) {
+    		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_PRE_SELECT_SCHEME, $this);
+		}
 		$this->selectLayout();
+		$this->completed = true;
 		// event handler may add variables to the layout
-		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_POST_LAYOUT_SELECT, $this);
+		if (!$this->getSkipPostSelectLayoutEvent()) {
+		  $this->getEventManager()->trigger(LayoutSchemeService::HOOK_POST_SELECT_LAYOUT, $this);
+		}
 	}
 	
 	/**
@@ -170,13 +182,21 @@ class LayoutSchemeService implements ListenerAggregateInterface
 		}
 	}
 	
+	public function pluginSetVariables($controller, $variables, $override = false) {
+	    if (!$this->completed && $controller) {
+	    	// called early -> need to complete first
+	        $this->onDispatch($controller->getEvent());
+	    }
+	    return $this->setVariables($variables, $override); 
+	}
+	
 	/**
 	 * apply variables to controller view model and all child view models
 	 * @param array: $variables
 	 */
 	public function setVariables($variables, $override = false) {
-		// apply variables to main layout view model
-		$controller = $this->getParam('controller');
+	    // apply variables to main layout view model
+	    $controller = $this->getParam('controller');
 		if($controller) {
 			$controller->layout()->setVariables($variables, $override);
 		}
@@ -207,13 +227,28 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	}
 	
 	/**
+     * @param $controller
+	 * @param $capture
+	 * @param $default
+	 *
+	 * @return mixed | ViewModel
+	 */
+	protected function pluginGetChildViewModel($controller, $capture, $default = null) {
+		if (!$this->completed) {
+			$this->onDispatch($controller->getEvent());
+		}
+		return $this->getChildViewModel($capture, $default);
+	}
+	
+	
+	/**
 	 * @param $capture
 	 * @param $default
 	 *
 	 * @return mixed | ViewModel
 	 */
 	protected function getChildViewModel($capture, $default = null) {
-		return isset($this->childViewModels[$capture]) ? $this->childViewModels[$capture] : $default;  
+	   return isset($this->childViewModels[$capture]) ? $this->childViewModels[$capture] : $default;
 	}
 
 	/**
@@ -245,6 +280,17 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	public function setServiceManager(ServiceManager $serviceManager) {
 		$this->serviceManager = $serviceManager;
 	}
+
+	
+	/**
+	 * @return the $childViewModels
+	 */
+	public function pluginGetChildViewModels($controller) {
+	    if (!$this->completed && $controller) {
+            $this->onDispatch($controller->getEvent());
+	    }
+		return $this->childViewModels;
+	}
 	
 	/**
 	 * @return the $childViewModels
@@ -266,9 +312,20 @@ class LayoutSchemeService implements ListenerAggregateInterface
 	 * @return param($name,$default)
 	 */
 	public function getParam($name, $default = null) {
-		return $this->params->get($name, $default);
+	   return $this->params->get($name, $default);
 	}
 
+	/**
+	 * set active scheme in associated options object
+	 * 
+	 * @param string
+	 */
+	public function pluginSetActiveScheme($activeScheme, $skipPreSchemeSelectEvent = false) {
+	    $this->setActiveScheme($activeScheme);
+	    $this->hasPluginSetActiveScheme = true;
+	    $this->skipPreSchemeSelectEvent = $skipPreSchemeSelectEvent;
+	}
+	
 	/**
 	 * set active scheme in associated options object
 	 * 
@@ -303,5 +360,33 @@ class LayoutSchemeService implements ListenerAggregateInterface
 			}	
 		}
 		return $this->schemeOptions[$schemeName];
+	}
+
+	/**
+	 * @return the $skipPreSelectSchemeEvent
+	 */
+	public function getSkipPreSelectSchemeEvent() {
+		return $this->skipPreSelectSchemeEvent;
+	}
+
+	/**
+	 * @return the $skipPostSelectLayoutEvent
+	 */
+	public function getSkipPostSelectLayoutEvent() {
+		return $this->skipPostSelectLayoutEvent;
+	}
+
+	/**
+	 * @param boolean $skipPreSelectSchemeEvent
+	 */
+	public function setSkipPreSelectSchemeEvent($skipPreSelectSchemeEvent) {
+		$this->skipPreSelectSchemeEvent = $skipPreSelectSchemeEvent;
+	}
+
+	/**
+	 * @param boolean $skipPostSelectLayoutEvent
+	 */
+	public function setSkipPostSelectLayoutEvent($skipPostSelectLayoutEvent) {
+		$this->skipPostSelectLayoutEvent = $skipPostSelectLayoutEvent;
 	}
 }
