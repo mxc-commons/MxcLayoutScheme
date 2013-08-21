@@ -113,7 +113,7 @@ The following options are available:
 Within each scheme definition the following sections are available:
 
 - **route_layouts** - Array of rules: `<routeName> => array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where `routeName` is the name of a registered route and `templateName` is the name of a registered template to be used as the layout. `childViewModels` optionally define
- a ViewModels which get added to the layout using addChild. `capture`defines the capture the child view template defined by `childTemplateName`gets rendered to.  Allthough you can define child ViewModels for each rule this is not recommended. We recommend to use `default_child_view_models` (see below) to define defaults and to use rule specific `child_view_models` to override the default settings if needed. See section 'Child Template Names' for further functional options. Default: `array()` (does nothing)
+ a ViewModels which get added to the layout using addChild. `capture`defines the capture the child view template defined by `childTemplateName`gets rendered to.  Allthough you can define child ViewModels for each rule this is not recommended. We recommend to use `default_child_view_models` (see below) to define defaults and to use rule specific `child_view_models` to override the default settings if needed. See section 'Special Child Template Names' for further functional options. Default: `array()` (does nothing)
 - **mca_layouts** - Array of rules: `<moduleName>[\<controllerName>[\<actionName>]] =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where moduleName is the name of the module, controllerName is the name of the controller (without the "Controller" suffix (if class name is IndexController then controllerName is Index)), actionName is the name of the the controller action. Setup for each 
 `<moduleName>[\<controllerName>[\<actionName>]]` is the same as in `route_layouts` (see above). 
 Default: `array()`
@@ -127,15 +127,15 @@ How MxcLayoutScheme works
 
 1. On Bootstrap MxcLayoutScheme hooks into the dispatch event of the application's EventManager with low priority (-1000).
 2. On Bootstrap MxcLayoutScheme instantiates the controller plugin `'layoutScheme'` to inject a reference to the application's ServiceManager instance.
-2. On dispatch MxcLayoutScheme evaluates the current route matched, the module name, the controller name and the action name.
-3. Then MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_PRE_SELECT_SCHEME` event. If you registered an event handler for that event in the bootstrap somewhere you can set the active scheme with `$e->getTarget()->setActiveScheme($schemeName)` with a `$schemeName`of your choice. Alternatively, you can set the active scheme within the controller action using the controller plugin: `$this->layoutScheme()->setActiveScheme($schemeName)`.
-4. Then, MxcLayoutScheme loads the currently active scheme.  
-5. MxcLayoutScheme checks the `route_layouts` for a key matching the matched route name. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
-6. MxcLayoutScheme then checks the `mca_layouts` for a key matching Module\Conroller\Action. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
-7. Then, MxcLayoutScheme checks the `mca_layouts` for a key matching Module\Conroller. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
-8. Then, MxcLayoutScheme checks the `mca_layouts` for a key matching the Module. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. Go to 10.
-9. Finally, MxcLayoutScheme checks the `default` for a key `global`. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. 
-10. Finally MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_POST_LAYOUT_SELECT` event. You may register an event handler to do custom post processing. Example: Assign variables to the selected layout ViewModel and it's child ViewModels using the controller plugin. See an example below
+3. On dispatch MxcLayoutScheme evaluates the current route matched, the module name, the controller name and the action name.
+4. Then MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_PRE_SELECT_SCHEME` event. If you registered an event handler for that event in the bootstrap somewhere you can set the active scheme with `$e->getTarget()->setActiveScheme($schemeName)` with a `$schemeName`of your choice. Alternatively, you can set the active scheme within the controller action using the controller plugin: `$this->layoutScheme()->setActiveScheme($schemeName)`.
+5. Then, MxcLayoutScheme loads the currently active scheme.  
+6. MxcLayoutScheme checks the `route_layouts` for a key matching the matched route name. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. If match continue at 11.
+7. MxcLayoutScheme then checks the `mca_layouts` for a key matching Module\Conroller\Action. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. If match continue at 11.
+8. Then, MxcLayoutScheme checks the `mca_layouts` for a key matching Module\Conroller. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. If match continue at 11.
+9. Then, MxcLayoutScheme checks the `mca_layouts` for a key matching the Module. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. If match continue at 11.
+10. Then, MxcLayoutScheme checks the `default` for a key `global`. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. 
+11. Finally MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_POST_LAYOUT_SELECT` event. You may register an event handler to do custom post processing. Example: Assign variables to the selected layout ViewModel and it's child ViewModels using the controller plugin. See an example below
 
 When applying child layouts MxcLayoutScheme maintains references to the child ViewModels for use by the `'layoutScheme'` controller plugin. The controller plugin enables you to apply variables to the child view models
 from within the controller action.
@@ -251,12 +251,12 @@ Given a layout template named `'layout\master'` which renders to captures `panel
 					</div>
 				<?php endif; ?>
 				<div data-role="content">
-					<?php echo $this->panelLeft ?>
+					<?php echo $this->content ?>
 				</div>
 			</body>
 	</html>
 
-In certain cases you do not want to render a left navigation. The login page is a good example if anonymous users are not allowed to navigate through the application at all.  
+In some cases you may not want to render a left navigation. The login page is a good example if anonymous users are not allowed to navigate through the application at all.  
 
 If we define have a layout scheme `'master'` defined like this a default child ViewModel gets applied to capture `'panelLeft'` and template `'layout\leftNavigation'`. This child ViewModel gets applied by default every time MxcLayoutScheme assigns the layout `'layout\master'`. The mca rule `'ZfcUser\User\login'` overrides the default
 `'panelLeft'` setting by defining `'panelLeft' => '<none>'`. The resulting markup does not contain not contain
@@ -330,11 +330,9 @@ Example:
 Important:
 
 `LayoutSchemeService` registers to the `MvcEvent::EVENT_DISPATCH` with priority of -1000. So layout selection
-happens *after* your controller action has returned *before* the page gets rendered. This means in particular that at the time the controller action is executed the `LayoutSchemeService` does not know anything about the layout selected and it's child view models. 
+happens *after* your controller action has returned *before* the page gets rendered. This means in particular that at the time the controller action is executed the `LayoutSchemeService` does not know anything about the layout selected and it's child view models.    
 
-If you call for example `layoutScheme()->getChildViewModel("footer")` this would return nothing because the footer child ViewModel has not been computed yet.
-
-`LayoutSchemeService` is designed for early execution of the onDispatch event handler if called via the controller plugin. If early event handling is done the service prevents event processing to happen again when triggered globally afterwards. Even in early processing the service triggers the `HOOK_PRE_SELECT_SCHEME` and `HOOK_POST_SELECT_LAYOUT` events.
+To get around this `LayoutSchemeService` was designed for early execution of the onDispatch event handler if called via the controller plugin. If this preponed event handling happens the service prevents event processing to happen again when triggered globally afterwards. Even in early processing the service triggers the `HOOK_PRE_SELECT_SCHEME` and `HOOK_POST_SELECT_LAYOUT` events.
 
 If you do not want one or both events to get triggered make sure to call `layoutScheme()->skipPostSelectLayoutEvent()` and/or `layoutScheme()->skipPreSelectSchemeEvent()` *before* you call `getChildViewModel()`, `getChildViewModels()` or `setVariables()`. Otherwise the event(s) will get fired.   
 
@@ -348,7 +346,7 @@ configuration.
 Common use cases for MxcSchemeLayout are 
 
 1. Apply different layouts for mobile devices based on mobile detection and distinct mobile route definitions
-2. Apply different layouts for authenticated and anonymous users
+2. Apply different layouts for authenticated and anonymous users or based on user roles
 3. Apply different layouts for functional modules (themes)
 
 Credits
