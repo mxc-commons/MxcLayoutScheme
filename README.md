@@ -353,4 +353,9 @@ Credits
 -------
 
 MxcLayoutScheme was inspired by [EdpModuleLayouts](https://github.com/EvanDotPro/EdpModuleLayouts) by Evan Coury. 
-EdpModuleLayouts is a lean and mean module which allows to set module specific layouts. 
+EdpModuleLayouts is a lean and mean module which allows to set module specific layouts.
+
+License
+-------
+
+MxcLayoutScheme is released under the New BSD License. See `license.txt`. 
