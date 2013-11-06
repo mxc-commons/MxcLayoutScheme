@@ -1,6 +1,6 @@
 MxcLayoutScheme
 ===============
-Version 0.2.1 created by Frank Hein and the mxc-commons team.
+Version 0.3.0 created by Frank Hein and the mxc-commons team.
 
 MxcLayoutScheme is part of the [maxence openBeee initiative](http://www.maxence.de/mxcweb/index.php/themen/open-business/)
 by [maxence business consulting gmbh, Germany](http://www.maxence.de). 
@@ -12,7 +12,10 @@ Did you ever want to apply a different layout phtml based on the route matched o
 
 MxcLayoutScheme allows to dynamically exchange the layout template used by the renderer. You define layout schemes which are a collection of rules to select layouts. Within each scheme you can assign a distinct layout to a particular route matched. Further you can define a distinct layout for each module, controller and action.
 
-Further, MxcLayoutScheme supports the configuration child ViewModels together with associated view templates to get rendered to captures you define.  
+MxcLayoutScheme supports the configuration child ViewModels together with associated view templates to get rendered to captures you define.
+
+Further, MxcLayoutScheme intercepts dispatch errors. You can apply layouts for particular error codes and http status codes the same way you do for routes
+and controllers.   
 
 MxcLayoutScheme provides an event interface to allow you to select the layout scheme applied at bootstrap time.
 
@@ -55,6 +58,8 @@ view template as far as possible. We want to achieve that within the controller 
 **7. Provide hooks for pre- and postprocessing**
 
 **8. Provide a controller plugin to control scheme selection and setup of layout variables**
+
+**9. Provide support for dispatch errors**
 
 In the current version you can either assign the layout variables within the controller action via `layoutScheme` controller plugin. Alternatively you may supply an event handler for pre- and postprocessing. We provide an example here.
 
@@ -116,6 +121,12 @@ Within each scheme definition the following sections are available:
  a ViewModels which get added to the layout using addChild. `capture`defines the capture the child view template defined by `childTemplateName`gets rendered to.  Allthough you can define child ViewModels for each rule this is not recommended. We recommend to use `default_child_view_models` (see below) to define defaults and to use rule specific `child_view_models` to override the default settings if needed. See section 'Special Child Template Names' for further functional options. Default: `array()` (does nothing)
 - **mca_layouts** - Array of rules: `<moduleName>[\<controllerName>[\<actionName>]] =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where moduleName is the name of the module, controllerName is the name of the controller (without the "Controller" suffix (if class name is IndexController then controllerName is Index)), actionName is the name of the the controller action. Setup for each 
 `<moduleName>[\<controllerName>[\<actionName>]]` is the same as in `route_layouts` (see above). 
+Default: `array()`
+- **error_layouts** - Array of rules: `<error> =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where error is the errorcode from the `DISPATCH_ERROR` event . Setup for each 
+`<error>` is the same as in `route_layouts` (see above). 
+Default: `array()`
+- **http\_status_layouts** - Array of rules: `<status> =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where status is the status from the `DISPATCH_ERROR` event's response object . Setup for each 
+`<status>` is the same as in `route_layouts` (see above). 
 Default: `array()`
 - **default** - Array of rules: `'global'` => `<templateName>`. 'global' currently is the only key supported by MxcLayoutScheme. Default: `array()`
 - **default_child_view_models** - `array <templateName> => array( <capture> => <childTemplateName>, ...)`. For each template identified by `templateName` you can define a list of child View Models. `capture` identifies the capture the child ViewModel's template idenitified by `templateName` gets rendered to.

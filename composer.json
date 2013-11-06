@@ -1,5 +1,5 @@
 {
-    "name": "mxc-commons/mxc-layoutscheme",
+ "name": "mxc-commons/mxc-layoutscheme",
     "description": "Zend Framework 2 Module that allows to define layout schemes and apply custom layouts to routes, modules, controllers and actions.",
     "type": "library",
     "keywords": [

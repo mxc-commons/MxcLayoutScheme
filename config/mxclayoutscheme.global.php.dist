@@ -50,6 +50,18 @@ $mxclayoutscheme = array(
 //					'layout' => 'module3/layout',
 //				),
 //			),
+//			// Example scheme to demonstrate the setup of error layouts 
+//
+//			'error_layouts' => array(
+//				'error-controller-unauthorized' => array
+//					'layout' => 'application/error',
+//				),
+//          ),
+//			'http_status_layouts' => array(
+//				'403' => array
+//					'layout' => 'application/403',
+//				),
+//          ),
 //			// default to standard zf2 layout for modules not registered
 //			// Note: If you do not specify a default global layout the application standard gets used 
 //			'default' => array(

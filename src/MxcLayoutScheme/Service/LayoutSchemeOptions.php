@@ -26,6 +26,16 @@ class LayoutSchemeOptions extends AbstractOptions {
 	 */
 	protected $routeLayouts = array();
 
+	 /**
+	 * @var array()
+	 */
+	protected $errorLayouts = array();
+	
+	 /**
+	 * @var array()
+	 */
+	protected $httpStatusLayouts = array();
+	
 	/**
 	 * @var array
 	 */
@@ -118,6 +128,35 @@ class LayoutSchemeOptions extends AbstractOptions {
 	public function setDefaultChildViewModels($defaultChildViewModels) {
 		$this->defaultChildViewModels = $defaultChildViewModels;
 	}
+
+	/**
+	 * @return the $errorLayouts
+	 */
+	public function getErrorLayouts() {
+		return $this->errorLayouts;
+	}
+
+	/**
+	 * @param \MxcLayoutScheme\Service\array() $errorLayouts
+	 */
+	public function setErrorLayouts($errorLayouts) {
+		$this->errorLayouts = $errorLayouts;
+	}
+	/**
+	 * @return the $httpStatusLayouts
+	 */
+	public function getHttpStatusLayouts() {
+		return $this->httpStatusLayouts;
+	}
+
+	/**
+	 * @param \MxcLayoutScheme\Service\array() $httpStatusLayouts
+	 */
+	public function setHttpStatusLayouts($httpStatusLayouts) {
+		$this->httpStatusLayouts = $httpStatusLayouts;
+	}
+
+
 
 
 }
