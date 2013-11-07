@@ -33,8 +33,6 @@ return array(
                         'layout'      => 'layout/layout',
                     ),
     		    ),
-    		    'defaults' => array(
-                ),
     		),
         ),
         'defaults' => array(
