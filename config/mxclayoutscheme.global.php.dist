@@ -1,177 +1,50 @@
 <?php
 
-$mxclayoutscheme = array(
-	
-	// Active Scheme
-	// Specify the layout scheme which is active by default
-	// Default is 'zf2'
-	//
-	// Note: It is not necessary to define a zf2 scheme if you want the application's default layout to get applied 
-	//
-	//'active_scheme' => 'zf2',
-
-
-	// Schemes
-	// Specify layout schemes. Each scheme is made up of an array of parametes and rules
-	//
-	// Default: array()
-	//
-	
-//	'schemes' => array(
-//		// Skeleton app standard scheme
-//		// Note: If you do not specify a standard scheme the application standard gets used 
-//		'zf2' => array(
-//			// the default/global layout gets applied if no rule matches
-//			// 'global' currently is the only supported key in the default section
-//			'default' => array(
-//				'global' => array(
-//					'layout' => 'layout/layout'
-//				),
-//			),
-//		),
-//		
-//		// Example scheme to demonstrate how to apply a different layout to each module
-//		
-//		'modules' => array(
-//			// mca is short for module, controller, action
-// 			// mca rules are defined by module[\controller[\action]]
-//			// 	module: 	name of module
-//			//  controller: name of controller (without 'Controller' suffix) 
-//			//    example: class IndexController -> controller name: Index
-//			//  action: 	name of action
-//			'mca_layouts => array(
-//				'ModuleName1' => array(
-//					'layout' => 'module1/layout',
-//				),
-//				'ModuleName2' => array(
-//					'layout' => 'module2/layout',
-//				),
-//				'ModuleName3' => array(
-//					'layout' => 'module3/layout',
-//				),
-//			),
-//			// Example scheme to demonstrate the setup of error layouts 
-//
-//			'error_layouts' => array(
-//				'error-controller-unauthorized' => array
-//					'layout' => 'application/error',
-//				),
-//          ),
-//			'http_status_layouts' => array(
-//				'403' => array
-//					'layout' => 'application/403',
-//				),
-//          ),
-//			// default to standard zf2 layout for modules not registered
-//			// Note: If you do not specify a default global layout the application standard gets used 
-//			'default' => array(
-//				'global' => array(
-//					'layout' => 'layout/layout',
-//				),
-//			),
-//
-//		// Example scheme to demonstrate 
-//		// * how to apply a different layout to each controller in Module1 but IndexController
-//		// * how to apply a different layout to the indexAction of IndexController
-//		// * how to apply a different layout to the addAction of Controller3Controller
-//		'controllers' => array(
-//			'mca_layouts => array(
-//				'Module1\Index\index' => array(
-//					'layout' => 'm1Index/indexlayout',
-//				),
-//				'Module1\Controller1' => array(
-//					'layout' => 'm1c1/layout',
-//				),
-//				'Module1\Controller2' => array(
-//					'layout' => 'm1c2/layout',
-//				),
-//				'Module1\Controller3' => array(
-//					'layout' => 'm1c3/layout',
-//				),
-//				'Module1\Controller3\add' => array(
-//					'layout' => 'm1c3/addlayout'
-//				),
-//			),
-//			// default to standard zf2 layout for mca not registered 
-//			'default' => array(
-//				'global' => array(
-//					'layout' => 'layout/layout',
-//				),
-//			),
-//		),
-//
-//		// Example scheme to demonstrate how to add route based layout to the sample above 
-//		// Route rules apply before mca rules
-//		// 
-//		// Flow of execution:
-//		// If route rule matches: Apply respective route layout and stop
-//		// If action rule matches: Apply respective action layout and stop
-//		// If controller rule matches: Apply respective controller layout and stop
-//		// If module rule matches: Apply respective module layout and stop
-//		// If default layout available: Apply default layout 
-//		// 
-//		'routes' => array(
-//
-//			'route_layouts' => array(
-//				'home' 			=> array(
-//					'layout' => 'home/layout',
-//				),
-//				'home/mobile	=> array(
-//					'layout' => 'mobile/home/layout',
-//				),
-//			),
-//			'mca_layouts => array(
-//				'Module1\Index\index' => array(
-//					'layout' => 'm1Index/indexlayout',
-//				),
-//				'Module1\Controller1' => array(
-//					'layout' => 'm1c1/layout',
-//				),
-//				'Module1\Controller2' => array(
-//					'layout' => 'm1c2/layout',
-//				),
-//				'Module1\Controller3' => array(
-//					'layout' => 'm1c3/layout',
-//				),
-//				'Module1\Controller3\add' => array(
-//					'layout' => 'm1c3/addlayout'
-//				),
-//			),
-//			// default to standard zf2 layout for mca not registered 
-//			'default' => array(
-//				'global' => array(
-//					'layout' => 'layout/layout',
-//				),
-//			),
-//		),
-//		// Example scheme to demonstrate 
-//		// * how to apply default child view models with capture and template
-//		// * how to override the default child views in a particular rule
-//		'childviews' => array(
-//          'mca_layouts' => array(
-//              'ZfcUser\User\login' => array(
-//                  'layout' => 'layout\master',
-//                  'child_view_models' => array(
-//                      'panelLeft' => '<none>',
-//                  ),
-//              ),
-//          ),
-//          'default' => array(
-//              'global' => array(
-//                  'layout' => 'layout\master'
-//              ),
-//          ),
-//          'default_child_view_models' => array(
-//              'layout\master' => array(
-//                  'panelLeft' => 'layout\leftNavigation',
-//              ),
-//          ),
-//      ),
-//	)
-
-);
-
 return array(
-	'mxclayoutscheme' 	=> $mxclayoutscheme,
+    'mxclayoutscheme' => array(
+        'options' => array(
+    		'zf2-standard' => array(
+        	    'mca_layouts' => array(
+    		        'options' => array(
+        	        ),
+    		        'defaults' => array(
+                        'layout'      => 'layout/layout',
+                    ),
+    	        ),
+    	        'route_layouts' => array(
+    		        'options' => array(
+        	        ),
+    		        'defaults' => array(
+                        'layout'      => 'layout/layout',
+                    ),
+    	        ),
+    		    'http_status_layouts' => array(
+    		        'options'  => array(
+    		        ),
+    		        'defaults' => array(
+                        'layout'      => 'layout/layout',
+                    ),
+    		    ),
+    		    'error_layouts' => array(
+    		        'options'  => array(
+    		    	
+    		        ),
+    		        'defaults' => array(
+                        'layout'      => 'layout/layout',
+                    ),
+    		    ),
+    		    'defaults' => array(
+                ),
+    		),
+        ),
+        'defaults' => array(
+           'active_scheme'          => 'zf2-standard',
+           'enable_mca_layouts'     => true,
+           'enable_route_layouts'   => true,
+           'enable_error_layouts'   => true,
+           'enable_status_layouts'  => true,
+        ),
+     ),
 );
+		
 

@@ -1,6 +1,6 @@
 MxcLayoutScheme
 ===============
-Version 0.3.0 created by Frank Hein and the mxc-commons team.
+Version 0.4.0 created by Frank Hein and the mxc-commons team.
 
 MxcLayoutScheme is part of the [maxence openBeee initiative](http://www.maxence.de/mxcweb/index.php/themen/open-business/)
 by [maxence business consulting gmbh, Germany](http://www.maxence.de). 
@@ -76,32 +76,39 @@ Installation
 
 1. Add this project in your composer.json:
 
-    ```json
-    "require": {
-        "mxc-commons/mxc-layoutscheme": "dev-master"
-    }
-    ```
+		json
+
+			"require": {
+				"mxc-commons/mxc-generics": "dev-master,
+				"mxc-commons/mxc-layoutscheme": "dev-master"
+			}
+
 
 2. Now tell composer to download MxcLayoutScheme by running the command:
 
-    ```bash
-    $ php composer.phar update
-    ```
+	    bash
+
+	    $ php composer.phar update
+    
 
 #### Post installation
 
 1. Enabling it in your `application.config.php`file.
 
-    ```php
-    <?php
-    return array(
-        'modules' => array(
-            // ...
-            'MxcLayoutScheme',
-        ),
-        // ...
-    );
-    ```
+		php
+
+		    <?php
+		    return array(
+		        'modules' => array(
+		            // ...
+					'MxcGenerics',
+		            'MxcLayoutScheme',
+		        ),
+		        // ...
+		    );
+
+2. Copy options file 'mxclayoutscheme.global.php.dist' to your configuration\autoload directory. Rename it to 'mxclayoutscheme.global.php'.
+
 
 Options
 -------
@@ -110,28 +117,163 @@ The MxcLayoutScheme module has options to setup and select layout schemes. After
 `./vendor/maxence/MxcLayoutScheme/config/mxclayoutscheme.global.php.dist` to
 `./config/autoload/mxclayoutscheme.global.php` and change the values as desired.
 
-The following options are available:
+`Options are structured in two sections:
 
-- **active_scheme** - Name of the scheme which is active by default. Default is `zf2`. Note: If you do not define a `zf2` scheme the application default layout gets used.
-- **schemes** - Array of layout schemes. Default: `array()` 
+- **defaults** - Settings to control service operation
+- **options** -  Settings for different layout schemes
 
-Within each scheme definition the following sections are available:
+		'mxclayoutscheme' => array(
+			'defaults' => array(
+				'active_scheme' => 'myScheme',   //-- name of your layout scheme definition 
+				'enable_mca_layouts' => true,    //-- apply layouts based on
+										    	 //-- module, controller, action 
+				'enable_route_layouts' => true   //-- apply layouts based on routes`
+				'enable_error_layouts' => true;  //-- apply layouts for dispatch errors
+				'enable_status_layouts' => true; //-- apply layouts based on response status codes
+			),
+			'options' => array(
+				<scheme-definition>,
+				...
+			),
+		);
 
-- **route_layouts** - Array of rules: `<routeName> => array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where `routeName` is the name of a registered route and `templateName` is the name of a registered template to be used as the layout. `childViewModels` optionally define
- a ViewModels which get added to the layout using addChild. `capture`defines the capture the child view template defined by `childTemplateName`gets rendered to.  Allthough you can define child ViewModels for each rule this is not recommended. We recommend to use `default_child_view_models` (see below) to define defaults and to use rule specific `child_view_models` to override the default settings if needed. See section 'Special Child Template Names' for further functional options. Default: `array()` (does nothing)
-- **mca_layouts** - Array of rules: `<moduleName>[\<controllerName>[\<actionName>]] =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where moduleName is the name of the module, controllerName is the name of the controller (without the "Controller" suffix (if class name is IndexController then controllerName is Index)), actionName is the name of the the controller action. Setup for each 
-`<moduleName>[\<controllerName>[\<actionName>]]` is the same as in `route_layouts` (see above). 
-Default: `array()`
-- **error_layouts** - Array of rules: `<error> =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where error is the errorcode from the `DISPATCH_ERROR` event . Setup for each 
-`<error>` is the same as in `route_layouts` (see above). 
-Default: `array()`
-- **http\_status_layouts** - Array of rules: `<status> =>` `array( 'layout' => <templateName>, ['child_view_models' => array ( 'capture' => 'childTemplateName', ... )]`, where status is the status from the `DISPATCH_ERROR` event's response object . Setup for each 
-`<status>` is the same as in `route_layouts` (see above). 
-Default: `array()`
-- **default** - Array of rules: `'global'` => `<templateName>`. 'global' currently is the only key supported by MxcLayoutScheme. Default: `array()`
-- **default_child_view_models** - `array <templateName> => array( <capture> => <childTemplateName>, ...)`. For each template identified by `templateName` you can define a list of child View Models. `capture` identifies the capture the child ViewModel's template idenitified by `templateName` gets rendered to.
 
-Find further documentation and configuration examples in `mxclayoutschemes.global.php.dist`  
+- **active_scheme** - Name of the scheme which is active by default. Default is `zf2-standard`. 
+- **enable_mca_layouts** - Rules for module, controller, action get applied for layout selection. Default: `true`
+- **enable_route_layouts** - Rules for module, controller, action get applied for layout selection. Default: `true`
+- **enable_status_layouts** - Rules based on status code get applied for layout selection on dispatch errors. Default: `true`
+- **enable_error_layouts** - Rules based on event error code get applied for layout selection on dispatch errors. Default: `true`
+
+
+Each `<scheme-definition>` is structured into four sections:
+
+		'myScheme' => array(
+			'mca_layouts' => array(
+				'options' => array(
+					<mca-rule-definition>,
+					...
+				),
+				'defaults => array(
+					<default-settings>
+				),
+			),
+			'route_layouts' => array(
+				'options' => array(
+					<route-rule-definition>,
+					...
+				),
+				'defaults => array(
+					<default-settings>
+				),
+			),
+			'error_layouts' => array(
+				'options' => array(
+					<error-rule-definition>,
+					...
+				),
+				'defaults => array(
+					<default-settings>
+				),
+			),
+			'status_layouts' => array(
+				'options' => array(
+					<status-rule-definition>,
+					...
+				),
+				'defaults => array(
+					<default-settings>
+				),
+			),
+		);
+				
+Each of these sections is optional (regardless of the `enable_xxxLayouts` settings).
+
+Rule Definition Keys
+--
+
+All `<xxx-rule-definition>` have identical structure. The array key specifies the rule,
+the values specify the layout templates to apply.
+
+
+#### `<mca_layouts>`
+
+Keys for `<mca_layouts>` are like `<moduleName>[\<controllerName>[\<actionName>]]`, 
+where `<moduleName>` is the name of the module, `<controllerName>` is the name of the controller (without 'Controller' suffix), `<actionName>` is the name of the the controller action.
+		
+		Examples
+
+			'MyModule'							//--- applies to all controllers in module
+			'MyModule\MyController'				//--- applies to all actions of a controller
+			'MyModule\MyController\MyAction'	//--- applies to a particular controller action
+
+Action rules are evaluated before controller rules. Controller rules are evaluated before Module rules. So if you apply an action rule and a module rule for the same module, the
+module rule applies for all controllers and actions but the one action which has an own
+rule.
+			
+
+#### `<route_layouts>`	
+
+Keys for `<route_layouts>` are like `<route>`, where `<route>` is a registered route. 
+
+#### `<status_layouts>`	
+
+Keys for `<status_layouts>` are like `<status>`, where `<status>` is status code (type string).
+
+		Example
+
+			'403'			//--- applies to status code 403
+ 
+#### `<error_layouts>`
+
+Keys for `<error_layouts>` are like `<error>`, where `<error>` is the error code returned by the `MvcEvent` (type string).
+
+Rule Definition Values
+---
+
+Each rule definition is a list of values like `<capture> => <template>`. The special capture `'layout'` defines the layout applied to the root ViewModel. All other captures define child ViewModels which get applied to the root ViewModel with the capture `<capture>` using the template `<template>`. Template names must be resolvable by either TemplatePathStack or TemplateMap resolvers.
+
+		Example mca rule:
+
+			'MyModule\MyController\index' => array(
+				'layout' 	=> 'layout/layout',
+				'panelLeft' => 'layout/panel-left',
+				'header' 	=> 'layout/header',
+				'footer' 	=> 'layout/footer',
+			),
+
+
+Rule Construction
+---
+
+While constructing the layout set to apply the service initializes the set with the values from the `'defaults'` section. Then, if a rule matches, the particular set associated with the rule overrides/extends the default set.
+
+		Example
+
+			route_layouts => array(
+				'options' => array(
+					'home' => array(
+						'panelLeft' => 'layout/panel-left'
+					),
+				),
+				'defaults' => array(
+					'layout' => 'layout/layout',
+					'header' => 'layout/header',
+					'footer' => 'layout/footer',
+				),
+			),
+ 
+Accessing the route `home` causes a match of the according rule. Defaults get applied and afterwards the settings from the matched rule. So the resulting template set is:
+
+		Example result
+
+			array(
+				'panelLeft' => 'layout/panel-left'
+				'layout' => 'layout/layout',
+				'header' => 'layout/header',
+				'footer' => 'layout/footer',
+			),
+ 
+
 
 How MxcLayoutScheme works
 -------------------------
@@ -150,6 +292,12 @@ How MxcLayoutScheme works
 
 When applying child layouts MxcLayoutScheme maintains references to the child ViewModels for use by the `'layoutScheme'` controller plugin. The controller plugin enables you to apply variables to the child view models
 from within the controller action.
+
+How MxcLayoutScheme handles dispatch errors
+-------------------------------------------
+
+When a dispatch error occurs, MxcLayoutScheme first checks for a rule applying to the error code from the `$event->getError()`. If no rule applies MxcLayoutScheme then checks for a rule applying to the status code from $event->getResponse()->getStatusCode().
+
 
 Example Event Handler to choose the active scheme
 --------------------------------------------------
@@ -215,8 +363,6 @@ Example Event Handler to do some postprocessing after layout selection has finis
 Special Child Template Names
 ----------------------------
 
-You can configure `default_child_view_models` globally for a particular scheme and override these default settings if needed in each particular rule using `child_view_models`.
-
 A child view model is defined by an array entry `<capture> => <templateName>`. `templateName` is either the name of an explicitly registered template in the ViewManager's `template_map` or a template name which can automatically be resolved via the ViewManager's `template_path_stack`.
 
 Additionally, there are two reserved values which you can use instead: `'<default>'` and `'<none>'` (including < and >)
@@ -276,29 +422,27 @@ the `<div data-role="panel-left"> ... </div>` section at all.
 	mxclayout_scheme.global.php:
 	
 		return array(
-			'active_scheme' => 'master',
-			'schemes' => array(
+			'options' => array(
 				'master' => array(
 					'mca_layouts' => array(
-						'ZfcUser\User\login' => array(
-							'layout' => 'layout\master',
-							'child_view_models' => array(
+						'options' => array(
+							'ZfcUser\User\login' => array(
+								'layout' => 'layout\master',
 								'panelLeft' => '<none>',
 							),
 						),
-					),
-					'default' => array(
-						'global' => array(
-							'layout' => 'layout\master'
-						),
-					),
-					'default_child_view_models' => array(
-						'layout\master' => array(
+						'defaults' => array(
 							'panelLeft' => 'layout\leftNavigation',
 						),
 					),
 				),
 			),
+			'defaults': 
+				'active_scheme' => 'master',
+				'enable_mca_layouts => true,
+				'enable_route_layouts => true,
+				'enable_error_layouts => true,
+				'enable_status_layouts => true,
 		);
 
 

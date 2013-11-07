@@ -9,6 +9,7 @@
 
 namespace MxcLayoutScheme;
 
+use MxcGenerics\Stdlib\GenericOptions;
 use Zend\ModuleManager\Feature\AutoloaderProviderInterface;
 use Zend\Mvc\MvcEvent;
 
@@ -51,12 +52,8 @@ class Module implements AutoloaderProviderInterface
     public function getServiceConfig()
     {
         return array(
-    		'factories' => array(
-	    		'mxclayoutscheme_service_options' => function ($sm) {
-	    			$config = $sm->get('Config');
-	    			return new Service\LayoutSchemeServiceOptions(isset($config['mxclayoutscheme']) ? $config['mxclayoutscheme'] : array());
-	    		},
-				'mxclayoutscheme_service' 	=> function ($sm) { return new Service\LayoutSchemeService($sm); }
+    		'invokables' => array(
+				'mxclayoutscheme_service' 	=> 'MxcLayoutScheme\Service\LayoutSchemeService'
    			),
 	    );
 	}
