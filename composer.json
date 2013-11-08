@@ -24,7 +24,7 @@
         "zendframework/zend-stdlib": "~2.1",
         "zendframework/zend-view": "~2.1",
         "zendframework/zend-filter": "~2.1",
-	"mxc-commons/mxc-generics" : ">=v0.1.0"
+	"mxc-commons/mxc-generics" : "dev-master"
     },
     "autoload": {
         "psr-0": {
