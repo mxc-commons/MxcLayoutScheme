@@ -2,17 +2,15 @@
 
 namespace MxcLayoutScheme\Service;
 
-use Zend\Mvc\MvcEvent;
-use Zend\View\Model\ViewModel;
 use Zend\EventManager\ListenerAggregateInterface;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ProvidesEvents;
-use Zend\Stdlib\Parameters;
 use Zend\Filter\Word\CamelCaseToDash;
-use MxcLayoutScheme\Service\LayoutSchemeServiceOptions;
-use MxcLayoutScheme\Service\LayoutSchemeOptions;
+use Zend\Mvc\MvcEvent;
 use Zend\ServiceManager\ServiceLocatorAwareInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\Stdlib\Parameters;
+use Zend\View\Model\ViewModel;
 use MxcGenerics\Stdlib\GenericOptions;
 
 class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorAwareInterface 
@@ -28,15 +26,17 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	protected $schemeOptions = array();
 	protected $params  = null;
 	protected $childViewModels = array();
-	protected $completed = false;
-	protected $hasPluginSetActiveScheme = false;
+	protected $contentTemplate = null;
+	protected $standardLayout = false;
+	protected $useControllerContentTemplate = false;
 	protected $skipPreSelectSchemeEvent = false;
 	protected $skipPostSelectLayoutEvent = false;
 
 	public function attach(EventManagerInterface $events)
 	{
-		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH_ERROR, array($this, 'onDispatchError'),-1000);
-	    $this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-1000);
+		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH_ERROR, array($this, 'onDispatchError'),100);
+	    $this->listeners[] = $events->attach(MvcEvent::EVENT_ROUTE, array($this, 'onRoute'),-2000);
+	    $this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-2000);
 	}
 	
 	/**
@@ -54,30 +54,48 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 		}
 	}
 	
-	/**
-	 * handle dispatch event
-	 */
-	public  function onDispatch(MvcEvent $e)
-	{
-        // prevent multiple execution
-	    if ($this->completed) return;
-	    
-		$ctrl = $e->getTarget();
-		$controllerclass = get_class($ctrl);
-		$controller = substr($controllerclass,strrpos($controllerclass,'\\')+1);
+	protected function setParams(MvcEvent $e) {
 		$routeMatch = $e->getRouteMatch();
-		$this->setParam('controller',$ctrl)
-			->setParam('moduleName',substr($controllerclass,0,strpos($controllerclass,'\\')))
-			->setParam('controllerName',substr($controller,0,strrpos($controller,'Controller')))
-			->setParam('actionName',$routeMatch->getParam('action'))
-			->setParam('routeName',$routeMatch->getMatchedRouteName());
+		
+		$controller = $routeMatch->getParam('controller');
+		$config = $this->getServiceLocator()->get('Config');
+		$controllers = isset($config['controllers']['invokables']) ? $config['controllers']['invokables'] : array();
+		$module = $controllers[$controller];
+		$module       = substr($module,0,strpos($module,'\\'));
+		
+		$this->setParam('module',$module)
+			->setParam('controller',$controller)
+			->setParam('action',$routeMatch->getParam('action'))
+			->setParam('route',$routeMatch->getMatchedRouteName());
+	}
+	
+	public function onDispatch(MvcEvent $e) {
+	    if ($this->useControllerContentTemplate) { 
+	        $this->useControllerContentTemplate = false;
+	        return;
+	    }
+	    if ($this->contentTemplate) {
+		    $view = $this->getServiceLocator()->get('view_manager')->getViewModel();
+		    $children = $view->getChildren();
+		    foreach ($children as $child) {
+		        if ($child->captureTo() === 'content') break;
+		    }
+		    $child->setTemplate($this->contentTemplate);
+	    } 
+	}
+	
+	/**
+	 * handle route event
+	 */
+	public  function onRoute(MvcEvent $e)
+	{
+		$this->setParams($e);
 		
 		// event handler may modify the active scheme
 		if (!$this->getSkipPreSelectSchemeEvent()) {
     		$this->getEventManager()->trigger(LayoutSchemeService::HOOK_PRE_SELECT_SCHEME, $this);
 		}
 		$this->selectLayout();
-		$this->completed = true;
 		// event handler may add variables to the layout
 		if (!$this->getSkipPostSelectLayoutEvent()) {
 		  $this->getEventManager()->trigger(LayoutSchemeService::HOOK_POST_SELECT_LAYOUT, $this);
@@ -116,34 +134,34 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
         //--- try to apply route rule based layout
 		if ($schemeOptions->getEnableRouteLayouts()) {
 			$routeLayouts = $schemeOptions->getRouteLayouts();
-			$route = $this->getParam('routeName');
-			if ($this->applyLayout($routeLayouts, $route)) return;
+			$route = $this->getParam('route');
+			if ($this->applyLayoutEx($routeLayouts, $route)) return;
 		}
 		
         //--- try to apply mca rule based layout
 		if ($schemeOptions->getEnableMcaLayouts()) {
 			$mcaLayouts = $schemeOptions->getMcaLayouts();
-			$module = $this->getParam('moduleName');
-			$controller = $this->getParam('controllerName');
-			$action = $this->getParam('actionName');
-			
-			if ($this->applyLayout($mcaLayouts, $module.'\\'.$controller.'\\'.$action)) return;
-			if ($this->applyLayout($mcaLayouts, $module.'\\'.$controller)) return;
-			if ($this->applyLayout($mcaLayouts, $module)) return;
+			$module = $this->getParam('module');
+			$controller = $this->getParam('controller');
+			$action = $this->getParam('action');
+			if ($this->applyLayoutEx($mcaLayouts, $module.'\\'.$controller.'\\'.$action)) return;
+			if ($this->applyLayoutEx($mcaLayouts, $module.'\\'.$controller)) return;
+			if ($this->applyLayoutEx($mcaLayouts, $module)) return;
 		}
 		
         //--- try to apply route rule based default layout
 		if ($schemeOptions->getEnableRouteLayouts()) {
 			$routeLayouts = $schemeOptions->getRouteLayouts();
-			if ($this->applyLayout($routeLayouts)) return;
+			if ($this->applyLayoutEx($routeLayouts)) return;
 		}
 		
         //--- try to apply mca rule based default layout
 		if ($schemeOptions->getEnableMcaLayouts()) {
 			$mcaLayouts = $schemeOptions->getMcaLayouts();
-			if ($this->applyLayout($mcaLayouts)) return;
+			if ($this->applyLayoutEx($mcaLayouts)) return;
 		}
 	}
+	
 	/**
 	 * select template according to error or response status scheme
 	 */
@@ -155,25 +173,53 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 		if ($schemeOptions->getEnableErrorLayouts()) {
     		$errorLayouts = $schemeOptions->getErrorLayouts();
     		$error = $this->getParam('error');
-    		if ($this->applyLayout($errorLayouts, $error)) return;
+    		if ($this->applyLayoutEx($errorLayouts, $error)) return;
 		}
         
         //--- try to apply status rule based layout
 		if ($schemeOptions->getEnableStatusLayouts()) {
     		$statusLayouts = $schemeOptions->getHttpStatusLayouts();
     		$status = (string) $this->getParam('statusCode');
-    		if ($this->applyLayout($statusLayouts, $status)) return;
+    		if ($this->applyLayoutEx($statusLayouts, $status)) return;
 		}
 		
         //--- try to apply error rule based default layout
 		if ($schemeOptions->getEnableErrorLayouts()) {
-		    if ($this->applyLayout($errorLayouts)) return;
+		    if ($this->applyLayoutEx($errorLayouts)) return;
 		}
 		
         //--- try to apply status rule based default layout
 		if ($schemeOptions->getEnableStatusLayouts()) {
-		    if ($this->applyLayout($statusLayouts)) return;
+		    if ($this->applyLayoutEx($statusLayouts)) return;
 		}
+	}
+
+	protected function loadLayout($templates, $key = null) {
+	    //-- return false if no templates array provided
+        if (!$templates) return false;
+  	    
+        //-- return false if the requested option set does not exist 
+	    if ($key && !isset($templates['options'][$key])) return false;
+
+	    $layoutOptions = new GenericOptions($templates, $key);
+
+        //-- return false if the option set does not specify a root layout
+        //-- and the view_manager config section does not contain a 'layout' key
+        if (!$layoutOptions->getLayout()) { 
+	       if ($this->getStandardLayout != false) {
+	           $layoutOptions->setLayout($this->standardLayout);
+	       } else {
+	           return false;
+	       }
+        }
+	    
+	    return $layoutOptions;
+	}
+	
+	protected function applyLayoutEx($templates, $key = null) {
+	    $options = $this->loadLayout($templates, $key);
+	    if (false === $options) return false;
+	    return $this->applyLayout($options);
 	}
 	
 	/**
@@ -182,33 +228,27 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	 * 
 	 * @return bool
 	 */
-	protected function applyLayout($templates,$key = null) {
-        
-        //-- return false if no templates array provided
-        if (!$templates) return false;
-        
-        //-- return false if the requested option set does not exist 
-	    if ($key && !isset($templates['options'][$key])) return false;
-	    
-	    $layoutOptions = new GenericOptions($templates, $key);
-	    $layoutRoot = $layoutOptions->getLayout();
+	protected function applyLayout(GenericOptions $layoutOptions, $applyContent = false) {
 
-        //-- return false if the option set does not specify a root layout 
-	    if (!$layoutRoot) return false;
-	    
 		$layout = $this->getServiceLocator()->get('view_manager')->getViewModel();
-		$layout->setTemplate($layoutOptions->getLayout());
+        $layoutRoot = $layoutOptions->getLayout();		
+		if ($layoutRoot) $layout->setTemplate($layoutRoot);
     	$filter = new CamelCaseToDash();
 		
 		foreach ($layoutOptions as $capture => $template) {
+		    
 	        if ($capture === 'layout') continue;
-		
+	        if (($applyContent === false) && ($capture === 'content')) {
+	            $this->contentTemplate = $layoutOptions->getContent();
+	               continue;
+	        }
+	        
 			switch ($template) {
 				case null:
 				case '<default>': 
-					$template = strtolower($filter->filter($this->getParam('moduleName').'\\'.
-										   $this->getParam('controllerName').'\\'.
-										   $this->getParam('actionName').'-'.
+					$template = strtolower($filter->filter($this->getParam('module').'\\'.
+										   $this->getParam('controller').'\\'.
+										   $this->getParam('action').'-'.
 										   $capture));
 					break;
 				case '<none>':
@@ -231,13 +271,6 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 		return true;
 	}
 	
-	public function pluginSetVariables($controller, $variables, $override = false) {
-	    if (!$this->completed && $controller) {
-	    	// called early -> need to complete first
-	        $this->onDispatch($controller->getEvent());
-	    }
-	    return $this->setVariables($variables, $override); 
-	}
 	
 	/**
 	 * apply variables to controller view model and all child view models
@@ -260,21 +293,6 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	protected function setChildViewModel($capture, $view) {
 		$this->childViewModels[$capture] = $view;
 	}
-	
-	/**
-     * @param $controller
-	 * @param $capture
-	 * @param $default
-	 *
-	 * @return mixed | ViewModel
-	 */
-	protected function pluginGetChildViewModel($controller, $capture, $default = null) {
-		if (!$this->completed && $controller) {
-			$this->onDispatch($controller->getEvent());
-		}
-		return $this->getChildViewModel($capture, $default);
-	}
-	
 	
 	/**
 	 * @param $capture
@@ -302,16 +320,6 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	 */
 	public function setOptions($options) {
 		$this->options = $options;
-	}
-	
-	/**
-	 * @return the $childViewModels
-	 */
-	public function pluginGetChildViewModels($controller) {
-	    if (!$this->completed && $controller) {
-            $this->onDispatch($controller->getEvent());
-	    }
-		return $this->childViewModels;
 	}
 	
 	/**
@@ -352,17 +360,6 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	 * 
 	 * @param string
 	 */
-	public function pluginSetActiveScheme($activeScheme, $skipPreSchemeSelectEvent = false) {
-	    $this->setActiveScheme($activeScheme);
-	    $this->hasPluginSetActiveScheme = true;
-	    $this->skipPreSchemeSelectEvent = $skipPreSchemeSelectEvent;
-	}
-	
-	/**
-	 * set active scheme in associated options object
-	 * 
-	 * @param string
-	 */
 	public function setActiveScheme($activeScheme) {
 		$this->getOptions()->setActiveScheme($activeScheme);
 	}
@@ -385,6 +382,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	protected function getSchemeOptions($schemeName) {
 		if (!isset($this->schemeOptions[$schemeName])) {
 		    $config = $this->getServiceLocator()->get('Config')['mxclayoutscheme'];
+		    
 		    $scheme = new GenericOptions($config, $schemeName);
 		    $this->schemeOptions[$schemeName] = $scheme;
 		}
@@ -442,4 +440,20 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	public function getServiceLocator() {
 	    return $this->serviceLocator;
 	}
+	
+	/**
+	 * @param boolean $flag
+	 */
+	public function useControllerContentTemplate($flag) {
+	    $this->useControllerContentTemplate = $flag;
+	}
+	
+	protected function getStandardLayout() {
+	    if (!$this->standardLayout) {
+	        $config = $this->getServiceLocator()->get('Config');
+	        $this->standardLayout = isset($config['view_manager']['layout']) ? $config['view_manager']['layout'] : false;
+	    }
+	    return $this->standardLayout;
+	}
+	
 }

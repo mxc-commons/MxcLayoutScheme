@@ -1,6 +1,6 @@
 MxcLayoutScheme
 ===============
-Version 0.4.0 created by Frank Hein and the mxc-commons team.
+Version 0.5.0 created by Frank Hein and the mxc-commons team.
 
 MxcLayoutScheme is part of the [maxence openBeee initiative](http://www.maxence.de/mxcweb/index.php/themen/open-business/)
 by [maxence business consulting gmbh, Germany](http://www.maxence.de). 
@@ -60,6 +60,8 @@ view template as far as possible. We want to achieve that within the controller 
 **8. Provide a controller plugin to control scheme selection and setup of layout variables**
 
 **9. Provide support for dispatch errors**
+
+**10. Provide support for content view template**
 
 In the current version you can either assign the layout variables within the controller action via `layoutScheme` controller plugin. Alternatively you may supply an event handler for pre- and postprocessing. We provide an example here.
 
@@ -198,13 +200,34 @@ the values specify the layout templates to apply.
 #### `<mca_layouts>`
 
 Keys for `<mca_layouts>` are like `<moduleName>[\<controllerName>[\<actionName>]]`, 
-where `<moduleName>` is the name of the module, `<controllerName>` is the name of the controller (without 'Controller' suffix), `<actionName>` is the name of the the controller action.
+where `<moduleName>` is the name of the module, `<controllerName>` is the name of the controller as it is registered to the ControllerLoader, `<actionName>` is the name of the the controller action.
 		
 		Examples
 
-			'MyModule'							//--- applies to all controllers in module
-			'MyModule\MyController'				//--- applies to all actions of a controller
-			'MyModule\MyController\MyAction'	//--- applies to a particular controller action
+			Generic
+
+				'MyModule'							//--- applies to all controllers in module
+				'MyModule\MyController'				//--- applies to all actions of a controller
+				'MyModule\MyController\MyAction'	//--- applies to a particular controller action
+
+			ZfcUser controller (registered as zfcuser)
+	
+				'ZfcUser'							//--- applies to all controllers of ZfcUser (there is only one ;)
+				'ZfcUser\zfcuser'					//--- applies to the controller registered with 'zfcuser'
+													//--- (ZfcUser\Controller\UserController) 
+				'ZfcUser\zfcuser\login'				//--- login action
+
+			MxcUserManagement controller (registered as 'MxcUserManagement\Controller\UserManagement')
+
+				'MxcUserManagement'					//--- applies to all controllers of module MxcUserManagement
+
+				'MxcUserManagement\MxcUserManagement\Controller\UserManagement'	 
+													//--- applies to controller registered with 'MxcUserManagement\Controller\UserManagement' 
+													//--- *** In this rule the first occurance of'MxcUserManagement' identifies the module.
+													//--- *** The second occurance is part of the controller registration string.
+
+				'MxcUserManagement\MxcUserManagement\Controller\UserManagement\index'	//--- index action 
+
 
 Action rules are evaluated before controller rules. Controller rules are evaluated before Module rules. So if you apply an action rule and a module rule for the same module, the
 module rule applies for all controllers and actions but the one action which has an own
@@ -278,9 +301,9 @@ Accessing the route `home` causes a match of the according rule. Defaults get ap
 How MxcLayoutScheme works
 -------------------------
 
-1. On Bootstrap MxcLayoutScheme hooks into the dispatch event of the application's EventManager with low priority (-1000).
+1. On Bootstrap MxcLayoutScheme hooks into the route event of the application's EventManager with low priority (-2000).
 2. On Bootstrap MxcLayoutScheme instantiates the controller plugin `'layoutScheme'` to inject a reference to the application's ServiceManager instance.
-3. On dispatch MxcLayoutScheme evaluates the current route matched, the module name, the controller name and the action name.
+3. On route MxcLayoutScheme evaluates the current route matched, the module name, the controller name and the action name.
 4. Then MxcLayoutScheme triggers an `MxcLayoutSchemeService::HOOK_PRE_SELECT_SCHEME` event. If you registered an event handler for that event in the bootstrap somewhere you can set the active scheme with `$e->getTarget()->setActiveScheme($schemeName)` with a `$schemeName`of your choice. Alternatively, you can set the active scheme within the controller action using the controller plugin: `$this->layoutScheme()->setActiveScheme($schemeName)`.
 5. Then, MxcLayoutScheme loads the currently active scheme.  
 6. MxcLayoutScheme checks the `route_layouts` for a key matching the matched route name. If the key exists the layout template registered to that match gets applied. If the rule defines child view models they get merged with the (optionally) defined default child view models and get applied to the layout. If match continue at 11.
@@ -296,7 +319,21 @@ from within the controller action.
 How MxcLayoutScheme handles dispatch errors
 -------------------------------------------
 
+On Bootstrap MxcLayoutScheme hooks into the dispatch.error event with priority -1000.
+
 When a dispatch error occurs, MxcLayoutScheme first checks for a rule applying to the error code from the `$event->getError()`. If no rule applies MxcLayoutScheme then checks for a rule applying to the status code from $event->getResponse()->getStatusCode().
+
+How MxcLayoutScheme handles content templates
+---------------------------------------------
+
+Content templates may be specified via rules like any other template. `<capture> => <template>`.
+
+While the child layouts to the root layout get attached onRoute, the content template gets attached on the dispatch event. 'MxcLayoutScheme' checks for a child template registered to the `content` capture. If found it replaces it's view template. If no content viewmodel is present,
+MxcLayoutScheme creates one and with the configured template attached to the `content` capture.
+
+#####Note: 
+If you need to set a content view template within your controller action and want it to override a given LayoutScheme definition, you
+need to inform layoutScheme to skip it's content view template definition (if present). Using the controller plugin you do that by `$this->layoutScheme()->useControllerContentTemplate()`. 
 
 
 Example Event Handler to choose the active scheme
@@ -426,7 +463,7 @@ the `<div data-role="panel-left"> ... </div>` section at all.
 				'master' => array(
 					'mca_layouts' => array(
 						'options' => array(
-							'ZfcUser\User\login' => array(
+							'ZfcUser\zfcuser\login' => array(
 								'layout' => 'layout\master',
 								'panelLeft' => '<none>',
 							),
@@ -454,6 +491,7 @@ From within a controller action you can access the controller plugin with `$this
 
 `layoutScheme` provides the following interfaces:
 
+**getActiveScheme():** get the currently active layout scheme.
 
 **getChildViewModel($capture):** returns the child view model registered for the $capture capture. Null if capture is not registered.
 
@@ -461,17 +499,9 @@ From within a controller action you can access the controller plugin with `$this
 
 **setVariables($variables, $override = false):** see ViewModels `setVariables` for parameter specification. The `layoutScheme setVariables` function applies the same variables provided through `$variables` to the controller's layout and to all registered child ViewModels.  
 
-**getActiveScheme():** get the currently active layout scheme. 
-
-**setActiveScheme($schemeName, $skipPreSelectSchemeEvent = false):** set the layout scheme to use. Set `skipPreSelectSchemeEvent` to `true` then the `LayoutSchemeService::HOOK_PRE_SELECT_EVENT` will not get triggered by `LayoutSchemeService`.
-
-**skipPreSelectSchemeEvent():** disable triggering of `LayoutSchemeService::HOOK_PRE_SELECT_SCHEME` this time. This event would get triggered after the view action before rendering. You may want to disable the event to prevent the global event handler to override the active scheme you set via `$this->layoutScheme()->setActiveScheme()`. 
-######Note:
-The event is not skipped by default. Within the global event handler you can check if the active scheme was set by the controller plugin using `LayoutSchemeService->hasPluginSetActiveScheme()` to prevent overriding.
-
-**skipPostSelectLayoutEvent():** disable triggering of `LayoutSchemeService::HOOK_POST_SELECT_LAYOUT` this time.
-
-**hasPluginSetActiveScheme()**: returns `true` if the active scheme was set previously through by the user through `layoutScheme()->setActiveScheme($schemeName)`.
+**useControllerContentTemplate($flag = true)**: MxcLayoutScheme supports the provision of content templates via
+it's configuration (`capture = 'content'`). If you want to override the MxcLayoutScheme configuration with your own
+template set in the controller's action, you should inform MxcLayoutScheme not to override your setting by calling `useControllerContentTemplate()`.
 
 #####Note
 
@@ -482,20 +512,11 @@ Example:
 	$this->layout()->setVariables($varMain); // assign variables to the layout's ViewModel
 	$this->layoutScheme()->getChildViewModel('panelLeft')->setVariables($varPanelLeft); // assign variables to leftPanel child
 
-Important:
-
-`LayoutSchemeService` registers to the `MvcEvent::EVENT_DISPATCH` with priority of -1000. So layout selection
-happens *after* your controller action has returned *before* the page gets rendered. This means in particular that at the time the controller action is executed the `LayoutSchemeService` does not know anything about the layout selected and it's child view models.    
-
-To get around this `LayoutSchemeService` was designed for early execution of the onDispatch event handler if called via the controller plugin. If this preponed event handling happens the service prevents event processing to happen again when triggered globally afterwards. Even in early processing the service triggers the `HOOK_PRE_SELECT_SCHEME` and `HOOK_POST_SELECT_LAYOUT` events.
-
-If you do not want one or both events to get triggered make sure to call `layoutScheme()->skipPostSelectLayoutEvent()` and/or `layoutScheme()->skipPreSelectSchemeEvent()` *before* you call `getChildViewModel()`, `getChildViewModels()` or `setVariables()`. Otherwise the event(s) will get fired.   
-
 Notes
 -----
 
-If you do not define a scheme or if the active scheme does not register a global default layout the ViewManager
-configuration gets applied. If you define a global default layout within your schemes it overrides the ViewManager
+If you do not define a scheme or if the active scheme does not register a master layout the ViewManager
+configuration gets applied. If you define a master layout (capture `layout`) within your schemes it overrides the ViewManager
 configuration.
 
 Common use cases for MxcSchemeLayout are 

@@ -7,14 +7,16 @@ use RuntimeException;
 class LayoutSchemePlugin extends AbstractPlugin {
 
 	protected $layoutSchemeService = null;
-
+	
+	protected $useControllerContentTemplate = false;
+	
 	/**
-	 * Set the active scheme
-	 *
-	 * @param string $activeScheme
+	 * Retrieve array of child view models
+	 * 
+	 * @param $flag    default true
 	 */
-	public function setActiveScheme($activeScheme, $skipPreSchemeSelectEvent = false) {
-		$this->getLayoutSchemeService()->pluginSetActiveScheme($activeScheme, $skipPreSchemeSelectEvent);
+	public function useControllerContentTemplate($flag = true) {
+	    $this->getLayoutSchemeService()->useControllerContentTemplate($flag);
 	}
 	
 	/**
@@ -27,10 +29,9 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	/**
 	 * Retrieve array of child view models
 	 * 
-	 * @param $capture
 	 */
 	public function getChildViewModels() {
-		return $this->getLayoutSchemeService()->pluginGetChildViewModels($this->getController());
+		return $this->getLayoutSchemeService()->getChildViewModels();
 	}
 	
 	/**
@@ -39,34 +40,17 @@ class LayoutSchemePlugin extends AbstractPlugin {
 	 * @param $capture
 	 */
 	public function getChildViewModel($capture) {
-		return $this->getLayoutSchemeService()->pluginGetChildViewModel($this->getController(), $capture);
+		return $this->getLayoutSchemeService()->getChildViewModel($capture);
 	}
 	
 	/**
 	 * Apply a set of variables to the layout view model and all it's child view models 
 	 * 
 	 * @param $variables
+	 * @param $override    default false
 	 */
 	public function setVariables($variables, $override = false) {
-	    $this->getLayoutSchemeService()->pluginSetVariables($this->getController(), $variables, $override);
-	}
-	
-	/**
-	 * Prevent LayoutSchemeService::HOOK_PRE_SELECT_SCHEME to get triggered (for this run only) 
-	 * 
-	 * @param $variables
-	 */
-	public function skipPreSelectSchemeEvent() {
-	    $this->getLayoutSchemeService()->setSkipPreSelectSchemeEvent(true);
-	}
-
-	/**
-	 * Prevent LayoutSchemeService::HOOK_POST_SELECT_LAYOUT to get triggered (for this run only) 
-	 * 
-	 * @param $variables
-	 */
-	public function skipPostSelectLayoutEvent() {
-		$this->getLayoutSchemeService()->setSkipPostSelectLayoutEvent(true);
+	    $this->getLayoutSchemeService()->setVariables($variables, $override);
 	}
 	
 	/**
@@ -84,18 +68,5 @@ class LayoutSchemePlugin extends AbstractPlugin {
 			throw new RuntimeException(sprintf('No LayoutSchemeService reference available. Should be injected onBootstrap.'));
 		}
 		return $this->layoutSchemeService;
-	}
-	
-	/**
-	 * Get the current controller instance
-	 *
-	 * @return null|Dispatchable
-	 */
-	public function getController()
-	{
-	    if (!$this->controller) {
-		    throw new RuntimeException(sprintf('No Controller reference available. Sorry.'));
-	    } 
-		return $this->controller;
 	}
 }
