@@ -80,7 +80,14 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 		    foreach ($children as $child) {
 		        if ($child->captureTo() === 'content') break;
 		    }
-		    $child->setTemplate($this->contentTemplate);
+		    if ($child->captureTo() === 'content') {
+		        $child->setTemplate($this->contentTemplate);
+		    } else {
+		        $content = new ViewModel();
+		        $view->addChild($content);
+		        $content->setTemplate($this->contentTemplate);
+		    }
+		    
 	    } 
 	}
 	
