@@ -34,7 +34,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 
 	public function attach(EventManagerInterface $events)
 	{
-		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH_ERROR, array($this, 'onDispatchError'),100);
+		$this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH_ERROR, array($this, 'onDispatchError'),-1000);
 	    $this->listeners[] = $events->attach(MvcEvent::EVENT_ROUTE, array($this, 'onRoute'),-2000);
 	    $this->listeners[] = $events->attach(MvcEvent::EVENT_DISPATCH, array($this, 'onDispatch'),-2000);
 	}
@@ -110,10 +110,6 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	}
 	
 	public function onDispatchError(MvcEvent $e) {
-	    $model = $e->getResult();
-        if (!$model instanceof ViewModel) {
-            return;
-        }
         $response = $e->getResponse();
         $statusCode = ($response) ? $response->getStatusCode() : null;
         $error = $e->getError();
