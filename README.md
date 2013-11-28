@@ -519,7 +519,7 @@ If you do not define a scheme or if the active scheme does not register a master
 configuration gets applied. If you define a master layout (capture `layout`) within your schemes it overrides the ViewManager
 configuration.
 
-Common use cases for MxcSchemeLayout are 
+Common use cases for MxcLayoutScheme are 
 
 1. Apply different layouts for mobile devices based on mobile detection and distinct mobile route definitions
 2. Apply different layouts for authenticated and anonymous users or based on user roles
