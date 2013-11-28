@@ -424,9 +424,9 @@ The templateName computes to `'reporting\wbs\prj-list-panel-left'`.
 
 ####templateName `'<none>'` :
 
-If you specify `'<none>'` as the templateName the computation of the particular capture gets omitted. There is no need to specify a `'<none>'` rule within the `'default_child_view_models'` section. That would be the same as not specifying that particular capture at all.
+If you specify `'<none>'` as the templateName the computation of the particular capture gets omitted. There is no need to specify a `'<none>'` rule within the `'defaults'` section. That would be the same as not specifying that particular capture at all.
 
-`'<none>'` rules are used to override `'default_child_view_models'` for a particular route rule or mca rule.
+`'<none>'` rules are used to override `'defaults'` for a particular route rule or mca rule.
 
 ######Example:
 
