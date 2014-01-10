@@ -209,7 +209,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
         //-- return false if the option set does not specify a root layout
         //-- and the view_manager config section does not contain a 'layout' key
         if (!$layoutOptions->getLayout()) { 
-	       if ($this->getStandardLayout != false) {
+	       if ($this->getStandardLayout() != false) {
 	           $layoutOptions->setLayout($this->standardLayout);
 	       } else {
 	           return false;
