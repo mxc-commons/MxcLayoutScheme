@@ -60,7 +60,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 		$controller = $routeMatch->getParam('controller');
 		$config = $this->getServiceLocator()->get('Config');
 		$controllers = isset($config['controllers']['invokables']) ? $config['controllers']['invokables'] : array();
-		$module = $controllers[$controller];
+		$module = isset($controllers[$controller]) ? $controllers[$controller] : '';
 		$module       = substr($module,0,strpos($module,'\\'));
 		
 		$this->setParam('module',$module)
