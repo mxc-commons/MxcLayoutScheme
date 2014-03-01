@@ -4,7 +4,7 @@ namespace MxcLayoutScheme\Service;
 
 use Zend\EventManager\ListenerAggregateInterface;
 use Zend\EventManager\EventManagerInterface;
-use Zend\EventManager\ProvidesEvents;
+use Zend\EventManager\EventManagerAwareTrait;
 use Zend\Filter\Word\CamelCaseToDash;
 use Zend\Mvc\MvcEvent;
 use Zend\ServiceManager\ServiceLocatorAwareInterface;
@@ -18,7 +18,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	const HOOK_PRE_SELECT_SCHEME      = 'pre-select-scheme';
 	const HOOK_POST_SELECT_LAYOUT	  = 'post-select-layout';
 	
-	use ProvidesEvents;
+	use EventManagerAwareTrait;
 	
 	protected $serviceLocator;
 	
