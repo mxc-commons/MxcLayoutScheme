@@ -9,9 +9,9 @@
 
 namespace MxcLayoutScheme;
 
-use MxcGenerics\Stdlib\GenericOptions;
 use Zend\ModuleManager\Feature\AutoloaderProviderInterface;
 use Zend\Mvc\MvcEvent;
+use Zend\Console\Request as ConsoleRequest;
 
 class Module implements AutoloaderProviderInterface
 {
@@ -33,6 +33,8 @@ class Module implements AutoloaderProviderInterface
     
     public function onBootstrap(MvcEvent $e)
     {
+        //--- do not install MxcLayoutScheme for console requests
+        if ($e->getRequest() instanceof ConsoleRequest) return;
     	$app = $e->getApplication();
     	$sm = $app->getServiceManager();
     	$em = $app->getEventManager();
