@@ -111,6 +111,7 @@ class LayoutSchemeService implements ListenerAggregateInterface, ServiceLocatorA
 	
 	public function onDispatchError(MvcEvent $e) {
         $response = $e->getResponse();
+	    if ($response instanceof \Zend\Console\Response) return;
         $statusCode = ($response) ? $response->getStatusCode() : null;
         $error = $e->getError();
         $this->setParam('statusCode', $statusCode);
